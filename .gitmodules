@@ -1,0 +1,3 @@
+[submodule "rasberrypi-backend/rtaudio"]
+	path = rasberrypi-backend/rtaudio
+	url = https://github.com/thestk/rtaudio.git
