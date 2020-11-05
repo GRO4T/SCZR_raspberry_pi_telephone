@@ -2,18 +2,24 @@ cmake_minimum_required(VERSION 3.0)
 
 project(telefon CXX)
 
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_BUILD_TYPE "Debug")
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 include_directories(inc)
+include_directories(rtaudio)
+add_subdirectory(rtaudio)
 
 add_library(phone
         inc/mic.hpp
         src/mic.cc
+        inc/audio.hpp
+        src/audio.cc
     )
 
 add_subdirectory(tests)
+
+target_link_libraries(phone rtaudio)
 
 add_custom_target(CopyCompileCommands ALL
         ${CMAKE_COMMAND} -E copy_if_different
