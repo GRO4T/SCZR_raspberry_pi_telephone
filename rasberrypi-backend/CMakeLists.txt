@@ -15,11 +15,12 @@ add_library(phone
         src/mic.cc
         inc/audio.hpp
         src/audio.cc
+        inc/ipc.hpp
     )
 
 add_subdirectory(tests)
 
-target_link_libraries(phone rtaudio)
+target_link_libraries(phone rtaudio rt)
 
 add_custom_target(CopyCompileCommands ALL
         ${CMAKE_COMMAND} -E copy_if_different
