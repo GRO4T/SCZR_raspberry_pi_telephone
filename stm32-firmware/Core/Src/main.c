@@ -44,6 +44,8 @@
 /* Private variables ---------------------------------------------------------*/
 ADC_HandleTypeDef hadc1;
 
+CRC_HandleTypeDef hcrc;
+
 TIM_HandleTypeDef htim2;
 
 UART_HandleTypeDef huart2;
@@ -58,14 +60,29 @@ static void MX_GPIO_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_TIM2_Init(void);
 static void MX_ADC1_Init(void);
+static void MX_CRC_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-uint16_t buffer[TOTAL_BUFFER_SIZE];
+
+__attribute__((packed)) struct Packet {
+	uint32_t id;
+	int16_t data[BUFFER_SIZE];
+	uint32_t crc;
+};
+
+struct Packet packets[2];
+
+volatile int16_t* buffer = NULL;
 volatile uint16_t i=0;
+volatile struct Packet* packet_to_send;
+volatile uint32_t current_packet = 0;
+volatile uint32_t new_data_to_send = 0;
+
+void switch_buffers(void);
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* timer) {
 	if (timer->Instance == TIM2) {
@@ -79,18 +96,26 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* timer) {
 			HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_SET);
 
 		if (i == BUFFER_SIZE) {
-#ifdef OVERWRITE_FIRST_VALUE
-			buffer[0] = FIRST_BUFFER_OVR_VALUE;
-#endif
-			CDC_Transmit_FS(&buffer[0], BUFFER_SIZE * sizeof(uint16_t));
-		} else if (i == TOTAL_BUFFER_SIZE) {
-#ifdef OVERWRITE_FIRST_VALUE
-			buffer[BUFFER_SIZE] = SECOND_BUFFER_OVR_VALUE;
-#endif
-			CDC_Transmit_FS(&buffer[BUFFER_SIZE], BUFFER_SIZE * sizeof(uint16_t));
 			i = 0;
+			switch_buffers();
 		}
 	}
+}
+
+void switch_buffers(void) {
+	packet_to_send = &packets[current_packet];
+	current_packet = current_packet == 0 ? 1 : 0;
+	buffer = &packets[current_packet].data[0];
+	new_data_to_send = 1;
+}
+
+void init_buffers() {
+	packets[0].id = 0x31434150; // PAC1
+	packets[1].id = 0x32434150; // PAC2
+	memset(packets[0].data, 0, sizeof(packets[0].data));
+	memset(packets[1].data, 0, sizeof(packets[1].data));
+	current_packet = 0;
+	buffer = &packets[current_packet].data[0];
 }
 
 /* USER CODE END 0 */
@@ -127,8 +152,9 @@ int main(void)
   MX_USART2_UART_Init();
   MX_TIM2_Init();
   MX_ADC1_Init();
+  MX_CRC_Init();
   /* USER CODE BEGIN 2 */
-  memset(buffer, 0, sizeof(buffer));
+  init_buffers();
   HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_SET);
   HAL_ADCEx_Calibration_Start(&hadc1);
   HAL_Delay(1000);
@@ -139,6 +165,11 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+	  if (new_data_to_send == 1) {
+		  packet_to_send->crc = HAL_CRC_Calculate(&hcrc, packet_to_send->data, sizeof(packet_to_send->data) / sizeof(uint32_t));
+		  CDC_Transmit_FS((uint8_t*)packet_to_send, sizeof(struct Packet));
+		  new_data_to_send = 0;
+	  }
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -225,7 +256,7 @@ static void MX_ADC1_Init(void)
   /** Configure Regular Channel
   */
   sConfig.Channel = ADC_CHANNEL_0;
-  sConfig.Rank = ADC_SAMPLING_TIME;
+  sConfig.Rank = ADC_REGULAR_RANK_1;
   sConfig.SamplingTime = ADC_SAMPLETIME_1CYCLE_5;
   if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
   {
@@ -234,6 +265,32 @@ static void MX_ADC1_Init(void)
   /* USER CODE BEGIN ADC1_Init 2 */
 
   /* USER CODE END ADC1_Init 2 */
+
+}
+
+/**
+  * @brief CRC Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_CRC_Init(void)
+{
+
+  /* USER CODE BEGIN CRC_Init 0 */
+
+  /* USER CODE END CRC_Init 0 */
+
+  /* USER CODE BEGIN CRC_Init 1 */
+
+  /* USER CODE END CRC_Init 1 */
+  hcrc.Instance = CRC;
+  if (HAL_CRC_Init(&hcrc) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN CRC_Init 2 */
+
+  /* USER CODE END CRC_Init 2 */
 
 }
 
@@ -258,7 +315,7 @@ static void MX_TIM2_Init(void)
   htim2.Instance = TIM2;
   htim2.Init.Prescaler = 71;
   htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim2.Init.Period = TIMER2_PERIOD;
+  htim2.Init.Period = 49;
   htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
