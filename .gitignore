@@ -2,3 +2,4 @@ Debug
 *.json
 .clangd
 build
+.vscode

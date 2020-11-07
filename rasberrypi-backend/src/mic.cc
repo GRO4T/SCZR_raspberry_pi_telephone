@@ -11,7 +11,7 @@ Microphone::Microphone(const char* path) {
     USB = ::open(path, O_RDWR | O_NOCTTY);
     if (USB < 0)
         throw BackendException();
-
+        
     struct termios tty;
     struct termios tty_old;
     memset (&tty, 0, sizeof tty);
