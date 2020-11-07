@@ -1,10 +1,13 @@
 #ifndef __AUDIO_HPP__
 #define __AUDIO_HPP__
 
+#include <cstring>
 #include <optional>
 
 #include "RtAudio.h"
 #include "ipc.hpp"
+
+constexpr unsigned int DEQUE_SIZE = 1024;
 
 template <unsigned int frames = 64u>
 class Audio {
@@ -12,16 +15,18 @@ public:
   struct AudioPacket {
     uint16_t data[frames];
   };
+
+  using PacketDeque = shared_mem_ptr<spin_locked_resource<fast_deque<AudioPacket, DEQUE_SIZE>>>;
 private:
   RtAudio dac_;
   RtAudio::StreamParameters params_;
   unsigned int sampleRate_;
   unsigned int bufferFrames_;
-  std::optional<shared_mem_ptr<fast_deque<AudioPacket, 1024>>> buffer_;
+  std::optional<PacketDeque> buffer_;
 public:
   Audio(unsigned int sampleRate);
   ~Audio();
-  void play(shared_mem_ptr<fast_deque<AudioPacket, 1024>> ptr);
+  void play(PacketDeque ptr);
   void stop();
 
   unsigned int getSampleRate() const { return sampleRate_; }
@@ -51,7 +56,7 @@ Audio<frames>::~Audio() {
 }
 
 template <unsigned int frames>
-void Audio<frames>::play(shared_mem_ptr<fast_deque<AudioPacket, 1024>> ptr) {
+void Audio<frames>::play(PacketDeque ptr) {
   buffer_ = ptr;
   dac_.openStream(&params_, NULL, RTAUDIO_SINT16, sampleRate_, &bufferFrames_, &Audio::transfer, this);
   dac_.startStream();
@@ -69,17 +74,19 @@ int Audio<frames>::transfer(void* outputBuffer, void* inputBuffer, unsigned int 
   Audio* audio = reinterpret_cast<Audio*>(userData);
   int16_t* outBuf = reinterpret_cast<int16_t*>(outputBuffer);
 
-  auto it = (*audio->buffer_.value()).pop_back();
-  if((*audio->buffer_.value()).valid(it)) {
-    for(int i = 0; i < nBufferFrames; ++i) {
-      outBuf[i] = it->data[i];
-    }
+
+  typename fast_deque<AudioPacket, DEQUE_SIZE>::iterator it;
+  bool valid = false;
+  {
+    auto resource = audio->buffer_.value()->lock();
+    it = resource->pop_back();
+    valid = resource->valid(it);
   }
-  else {
-    for(int i = 0; i < nBufferFrames; ++i) {
-      outBuf[i] = 0;
-    }
-  }
+  
+  if(valid)
+    std::memcpy(outBuf, it->data, nBufferFrames * sizeof(uint16_t));
+  else
+    std::memset(outBuf, 0, nBufferFrames * sizeof(uint16_t));
 
   return 0;
 }

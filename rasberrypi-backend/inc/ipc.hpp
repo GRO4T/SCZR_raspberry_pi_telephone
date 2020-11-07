@@ -74,6 +74,8 @@ public:
     bool empty() const noexcept;
     bool full() const noexcept;
     void reset() noexcept;
+
+    typedef typename std::array<T, N>::iterator iterator;
 };
 
 template<typename T>
@@ -102,6 +104,17 @@ public:
     spin_locked_resource(Args&&... args);
 
     locked_resource lock() noexcept;
+};
+
+class Semaphore {
+    int id;
+    static int next_proj_id();
+public:
+    Semaphore(int value = 1);
+    Semaphore(const char* path, int proj_id,int value = 1);
+    Semaphore(const Semaphore& other);
+    void P();
+    void V();
 };
 
 template<typename T>
