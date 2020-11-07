@@ -19,8 +19,13 @@ add_executable(spin_lock
     src/spin_lock.cc
 )
 
+add_executable(transmit
+    src/transmit.cc
+)
+
 target_link_libraries(dump_mic_to_file phone)
 target_link_libraries(audio phone)
 target_link_libraries(ipc phone)
 target_link_libraries(deque phone)
 target_link_libraries(spin_lock phone)
+target_link_libraries(transmit phone)

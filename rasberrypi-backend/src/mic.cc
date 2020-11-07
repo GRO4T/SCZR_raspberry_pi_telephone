@@ -58,3 +58,7 @@ std::size_t Microphone::read(char* buffer, std::size_t buffer_size) const {
     return already_read;
 }
 
+int Microphone::fd() const {
+    return USB;
+}
+

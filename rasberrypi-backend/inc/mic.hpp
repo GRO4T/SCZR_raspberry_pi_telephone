@@ -10,6 +10,7 @@ public:
     ~Microphone();
 
     std::size_t read(char* buffer, std::size_t buffer_size) const;
+    int fd() const;
 };
 
 #endif
