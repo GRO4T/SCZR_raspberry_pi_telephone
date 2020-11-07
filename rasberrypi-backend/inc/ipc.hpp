@@ -40,6 +40,8 @@ public:
     const T& operator*() const noexcept { return ptr->obj; }
     T* operator->() noexcept { return &ptr->obj; }
     const T* operator->() const noexcept { return &ptr->obj; }
+    shared_mem_ptr<T>& operator=(const shared_mem_ptr& other);
+    shared_mem_ptr<T>& operator=(shared_mem_ptr&& other);
 };
 
 template<typename T, std::size_t N>
@@ -149,7 +151,7 @@ shared_mem_ptr<T>::~shared_mem_ptr() {
 template<typename T>
 shared_mem_ptr<T>::shared_mem_ptr(const shared_mem_ptr<T>& other) {
     this->memfd = other.memfd;
-    this->ptr = other->ptr;
+    this->ptr = other.ptr;
     this->path = other.path;
 
     ptr->use_count++;
@@ -158,10 +160,34 @@ shared_mem_ptr<T>::shared_mem_ptr(const shared_mem_ptr<T>& other) {
 template<typename T>
 shared_mem_ptr<T>::shared_mem_ptr(shared_mem_ptr<T>&& other) {
     this->memfd = other.memfd;
-    this->ptr = other->ptr;
+    this->ptr = other.ptr;
     this->path = other.path;
 
     other.ptr = nullptr;
+}
+
+template<typename T>
+shared_mem_ptr<T>& shared_mem_ptr<T>::operator=(const shared_mem_ptr<T>& other) {
+    if(&other != this) {
+        this->memfd = other.memfd;
+        this->ptr = other.ptr;
+        this->path = other.path;
+
+        ptr->use_count++;
+    }
+    return *this;
+}
+
+template<typename T>
+shared_mem_ptr<T>& shared_mem_ptr<T>::operator=(shared_mem_ptr<T>&& other) {
+    if(&other != this) {
+        this->memfd = other.memfd;
+        this->ptr = other.ptr;
+        this->path = other.path;
+
+        other.ptr = nullptr;
+    }
+    return *this;
 }
 
 template<typename T, std::size_t N>

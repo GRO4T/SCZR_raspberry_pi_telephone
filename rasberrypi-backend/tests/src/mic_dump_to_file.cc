@@ -7,7 +7,7 @@ char buffer[2048];
 
 int main(int argc, char* argv[]) {
     if (argc != 2) {
-        std::cout << "Usage ./" << argv[0] << " <file name>\n";
+        std::cout << "Usage " << argv[0] << " <file name>\n";
         return -1;
     }
 

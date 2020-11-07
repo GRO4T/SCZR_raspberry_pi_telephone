@@ -14,7 +14,6 @@ add_library(phone
         inc/mic.hpp
         src/mic.cc
         inc/audio.hpp
-        src/audio.cc
         inc/ipc.hpp
     )
 
