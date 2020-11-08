@@ -3,3 +3,5 @@ Debug
 .clangd
 build
 .vscode
+.idea
+cmake-build-debug

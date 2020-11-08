@@ -11,6 +11,8 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <netinet/in.h>
+#include <unordered_set>
+#include <iostream>
 
 const int BUFFER_SIZE = 128;
 
@@ -29,37 +31,56 @@ public:
     explicit IPv4(unsigned long int );
 
     const in_addr& address() const noexcept;
+    operator std::string() const;
 };
+
+std::ostream& operator<<(std::ostream& os, const IPv4& ip4) {
+  os << std::string(ip4);
+  return os;
+}
 
 class UDPSocket {
     int sockfd;
-    sockaddr_in addr_in;
-    sockaddr_in addr_out;
+    sockaddr_in addr;
+    sockaddr_in incoming_addr;
+    sockaddr_in outgoing_addr;
 public:
     UDPSocket(const IPv4& addr, int port = 8080);
-    void send(std::string msg);
-    std::string receive(std::size_t n);
+    ~UDPSocket();
+    void setOutgoingAddr(const IPv4& ip4, int port = 8080);
+    std::string getOutgoingAddr() const;
+    std::string getIncomingAddr() const;
+    void send(const char * buf, std::size_t bufsize);
+    int receive(char * buf, std::size_t bufsize);
+    int fd() const;
+};
+
+class FDSelector {
+    fd_set rd_set;
+    fd_set wr_set;
+    std::unordered_set<int> rd_fds;
+    std::unordered_set<int> wr_fds;
+public:
+    bool add(const Microphone& mic);
+    bool addRead(const UDPSocket& socket);
+    bool addWrite(const UDPSocket& socket);
+
+    void remove(const Microphone& mic);
+    void removeRead(const UDPSocket& socket);
+    void removeWrite(const UDPSocket& socket);
+
+    bool ready(const Microphone& mic);
+    bool readyRead(const UDPSocket& socket);
+    bool readyWrite(const UDPSocket& socket);
+
+    bool wait(std::chrono::milliseconds ms);
+    void clear();
 };
 
 class DataTransmitter {
-    fd_set rd_set;
-    fd_set wr_set;
-    int mic_fd;
-    int net_out_fd;
-    int net_in_fd;
-
     Microphone mic;
-
-// For testing purposes
-    static const int PORT = 8080; 
-    static const int MAXLINE = 1024;
-    struct sockaddr_in addr_in;
-    struct sockaddr_in addr_out;
-
-    bool waitForData(std::chrono::milliseconds ms);
-    bool micReady() const;
-    bool netOutReady() const;
-    bool netInReady() const;
+    UDPSocket socket;
+    FDSelector fd_selector;
 public:
     DataTransmitter();
     void transmit(std::string dumpfile);
