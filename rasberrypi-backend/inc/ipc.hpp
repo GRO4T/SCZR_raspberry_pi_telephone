@@ -108,10 +108,9 @@ public:
 
 class Semaphore {
     int id;
-    static int next_proj_id();
 public:
-    Semaphore(int value = 1);
-    Semaphore(const char* path, int proj_id,int value = 1);
+    Semaphore(const char* unique_path, int unique_id);
+    Semaphore(const char* unique_path, int unique_id, int value);
     Semaphore(const Semaphore& other);
     void P();
     void V();

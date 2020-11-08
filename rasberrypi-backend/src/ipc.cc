@@ -12,34 +12,24 @@ union semun {
   struct seminfo *__buf;
 };
 
-int Semaphore::next_proj_id() {
-    static int proj_id = 1;
-    return proj_id++;
-}
-
-Semaphore::Semaphore(int value): Semaphore(".", next_proj_id(), value) {
-    
-}
-
-Semaphore::Semaphore(const char* path, int proj_id,int value) {
-    key_t key = ftok(path, proj_id);
-    if(key == -1) {
-        std::perror("Cannot create key for semaphore");
+Semaphore::Semaphore(const char* unique_path, int unique_id) {
+    key_t key = ftok(unique_path, unique_id);
+    if(key == -1) 
         throw std::runtime_error("Cannot create key for semaphore");
-    }
-    int semid = semget(key, 1, IPC_CREAT | 0660);
-    if(semid == -1) {
-        std::perror("Cannot acquire semaphore.");
+    
+    id = semget(key, 1, IPC_CREAT | 0660);
+    if (id == -1) 
         throw std::runtime_error("Cannot acquire semaphore.");
-    }
+}
+
+Semaphore::Semaphore(const char* unique_path, int unique_id, int value) 
+    : Semaphore(unique_path, unique_id) {
     semun val;
     val.val = value;
-    if(semctl(semid, 0, SETVAL, val) == -1) {
-        std::perror("Cannot set initial value");
+    if(semctl(id, 0, SETVAL, val) == -1) 
         throw std::runtime_error("Cannot set initial value");
-    }
-    id = semid;
 }
+
 Semaphore::Semaphore(const Semaphore& other) {
     id = other.id;
 }
@@ -49,18 +39,17 @@ void Semaphore::P() {
    op.sem_num = 0;
    op.sem_op = -1;
    op.sem_flg = 0;
-   if(semop(id, &op, 1) == -1) {
-       std::perror("Cannot lock semaphore.");
+
+   if(semop(id, &op, 1) == -1) 
        throw std::runtime_error("Cannot lock semaphore.");
-   }
 }
+
 void Semaphore::V() {
    sembuf op;
    op.sem_num = 0;
    op.sem_op = 1;
    op.sem_flg = 0;
-   if(semop(id, &op, 1) == -1) {
-       std::perror("Cannot unlock semaphore.");
+
+   if(semop(id, &op, 1) == -1) 
        throw std::runtime_error("Cannot unlock semaphore.");
-   }
 }
