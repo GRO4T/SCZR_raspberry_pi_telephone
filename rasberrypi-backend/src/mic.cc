@@ -49,7 +49,7 @@ std::size_t Microphone::read(char* buffer, std::size_t buffer_size) const {
     std::size_t already_read = 0;
     while (already_read < buffer_size) {
         ssize_t currently_read = ::read(USB, &buffer[already_read], buffer_size - already_read);
-        if (currently_read < 0) 
+        if (currently_read < 0)
             throw BackendException();
         else if (currently_read == 0)
             return already_read;

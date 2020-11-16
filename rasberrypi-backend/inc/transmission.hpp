@@ -2,6 +2,7 @@
 #define __SOCKET_HPP__
 
 #include "mic.hpp"
+#include "audio.hpp"
 
 #include <stdio.h>
 #include <cstring>
@@ -14,13 +15,20 @@
 #include <unordered_set>
 #include <iostream>
 
-const int BUFFER_SIZE = 128;
+namespace transmission {
 
-struct __attribute__((__packed__)) Packet {
+const unsigned int kBufferSize = 128;
+const uint32_t PAC1 = 0x31434150; // 826491216
+const uint32_t PAC2 = 0x32434150; // 843268432
+
+struct __attribute__((__packed__)) MicPacket {
 	uint32_t id;
-	int16_t data[BUFFER_SIZE];
+	int16_t data[kBufferSize];
 	uint32_t crc;
 };
+
+const std::size_t kPacketSize = sizeof(MicPacket);
+const std::size_t kDataSize = kPacketSize - 8;
 
 class IPv4 {
     in_addr addr;
@@ -77,13 +85,36 @@ public:
     void clear();
 };
 
+class DataFromMicRetriever {
+ public:
+  void fetchData(MicPacket& dest);
+  const Microphone& getMic() const;
+ private:
+  Microphone mic;
+  char buffer_tmp[kPacketSize];
+  bool mic_synced = false;
+  std::size_t synced_at = 0;
+};
+class DataConverter {
+ public:
+  static void micPacketToAudioPacket(MicPacket& src, Audio<kBufferSize>::AudioPacket& dest);
+ private:
+  static const uint16_t constant_compound = 1551; // (1.25/3.3)*4096
+};
 class DataTransmitter {
-    Microphone mic;
-    UDPSocket socket;
-    FDSelector fd_selector;
 public:
     DataTransmitter();
     void transmit(std::string dumpfile);
+private:
+  UDPSocket socket;
+  FDSelector fd_selector;
+  DataFromMicRetriever data_from_mic_retriever;
+
+  Audio<kBufferSize> audio;
+  MicPacket packet_out;
+  MicPacket packet_in;
 };
+
+}
 
 #endif
