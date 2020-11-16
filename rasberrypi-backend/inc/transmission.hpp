@@ -87,13 +87,17 @@ public:
 
 class DataFromMicRetriever {
  public:
-  void fetchData(MicPacket& dest);
+  void fetchData(MicPacket& dest_packet);
   const Microphone& getMic() const;
  private:
   Microphone mic;
   char buffer_tmp[kPacketSize];
   bool mic_synced = false;
   std::size_t synced_at = 0;
+  uint32_t last_synced_id = 0;
+
+  void handle_synced(MicPacket& dest_packet);
+  void handle_desynced(MicPacket& dest_packet);
 };
 class DataConverter {
  public:

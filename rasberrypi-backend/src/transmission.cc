@@ -147,45 +147,65 @@ void transmission::FDSelector::clear() {
 }
 
 void transmission::DataFromMicRetriever::fetchData(MicPacket &dest_packet) {
-  int n = mic.read(buffer_tmp, kPacketSize);
   if (!mic_synced) {
-    for (std::size_t i = 0; i < kPacketSize; ++i) {
-      uint32_t id = *reinterpret_cast<uint32_t *>(buffer_tmp + i);
-      if (id == PAC1 || id == PAC2) {
-        mic_synced = true;
-        synced_at = i;
-        dest_packet.id = id;
-        std::size_t data_chunk_size = std::min(kPacketSize - synced_at - 4, std::size_t(kDataSize));
-        memcpy(dest_packet.data, buffer_tmp + synced_at + 4, data_chunk_size); // first portion of data
-        if (data_chunk_size == kDataSize) { // synced at byte 0
-          memcpy(&dest_packet.crc, buffer_tmp + kDataSize + 4, 4); // crc
-        }
-        else { // fetch rest of the packet
-          int n = mic.read(buffer_tmp, kPacketSize - 4 - data_chunk_size);
-          assert(n == kPacketSize - 4 - data_chunk_size);
-          memcpy(dest_packet.data + data_chunk_size, buffer_tmp, n - 4); // rest of the data
-          memcpy(dest_packet.data + data_chunk_size + n - 4, buffer_tmp + n - 4, 4); // crc
-        }
-        break;
-      }
-    }
+    handle_desynced(dest_packet);
   }
   else {
-    uint32_t old_id = dest_packet.id;
-    assert(n == kPacketSize);
-    memcpy(&dest_packet.id, buffer_tmp, 4);
-    assert(dest_packet.id == PAC1 || dest_packet.id == PAC2);
-    assert(dest_packet.id != old_id);
-    memcpy(dest_packet.data, buffer_tmp + 4, kDataSize);
-    memcpy(&dest_packet.crc, buffer_tmp + 4 + kDataSize, 4);
+    handle_synced(dest_packet);
   }
 }
+
+void transmission::DataFromMicRetriever::handle_synced(MicPacket& dest_packet) {
+  int n = mic.read(buffer_tmp, kPacketSize);
+  assert(n == kPacketSize);
+  memcpy((char*)&dest_packet.id, buffer_tmp, 4); // copy id
+  if ( !((dest_packet.id == PAC1 || dest_packet.id == PAC2) && (dest_packet.id != last_synced_id)) ) { // if id invalid
+    handle_desynced(dest_packet);
+    return;
+  }
+  last_synced_id = dest_packet.id;
+  memcpy((char*)dest_packet.data, buffer_tmp + 4, kPacketSize - 4); // copy rest of the packet
+}
+
+void transmission::DataFromMicRetriever::handle_desynced(MicPacket& dest_packet) {
+  mic.read(buffer_tmp, kPacketSize);
+  // find id
+  for (std::size_t i = 0; i < kPacketSize; ++i) {
+    uint32_t id = *reinterpret_cast<uint32_t *>(buffer_tmp + i);
+    if (id == PAC1 || id == PAC2) {
+      mic_synced = true;
+      synced_at = i;
+      last_synced_id = id;
+      dest_packet.id = id;
+      break;
+    }
+  }
+  // handle rest of the packet
+  std::size_t remaining_bytes = kPacketSize - synced_at - 4;
+  memcpy((char*)dest_packet.data, buffer_tmp + synced_at + 4, remaining_bytes);
+  if (remaining_bytes < kPacketSize - 4){ // more data needs to be fetched (we didn't sync at byte 0)
+    int rest_of_the_bytes = mic.read(buffer_tmp, kPacketSize - 4 - remaining_bytes);
+    assert(rest_of_the_bytes == kPacketSize - 4 - remaining_bytes);
+    memcpy((char*)dest_packet.data + remaining_bytes, buffer_tmp, rest_of_the_bytes); // rest of the data
+  }
+}
+
 const Microphone& transmission::DataFromMicRetriever::getMic() const {
   return mic;
 }
 
 void transmission::DataConverter::micPacketToAudioPacket(MicPacket &src, Audio<kBufferSize>::AudioPacket &dest) {
-  memcpy(src.data, dest.data, kBufferSize);
+  /*
+  for (std::size_t i = 0; i < kBufferSize; ++i) {
+    src.data[i] -= constant_compound;
+  }
+   */
+  // memcpy((char*)src.data, (char*)dest.data, kDataSize);
+  memcpy((char*)dest.data, (char*)src.data, kDataSize);
+  for (std::size_t i = 0; i < kBufferSize; ++i) {
+    dest.data[i] -= constant_compound;
+    dest.data[i] *= 3;
+  }
 }
 
 transmission::DataTransmitter::DataTransmitter() : socket(IPv4("127.0.0.1")), audio(44100) {
