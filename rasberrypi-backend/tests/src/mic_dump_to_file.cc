@@ -4,11 +4,6 @@
 #include <iostream>
 #include <fstream>
 
-__attribute__((packed)) struct MicPacket {
-	uint32_t id;
-	int16_t data[128];
-	uint32_t crc;
-};
 char buffer[2048];
 
 int main(int argc, char* argv[]) {

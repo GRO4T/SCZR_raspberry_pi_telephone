@@ -195,12 +195,6 @@ const Microphone& transmission::DataFromMicRetriever::getMic() const {
 }
 
 void transmission::DataConverter::micPacketToAudioPacket(MicPacket &src, Audio<kBufferSize>::AudioPacket &dest) {
-  /*
-  for (std::size_t i = 0; i < kBufferSize; ++i) {
-    src.data[i] -= constant_compound;
-  }
-   */
-  // memcpy((char*)src.data, (char*)dest.data, kDataSize);
   memcpy((char*)dest.data, (char*)src.data, kDataSize);
   for (std::size_t i = 0; i < kBufferSize; ++i) {
     dest.data[i] -= constant_compound;
