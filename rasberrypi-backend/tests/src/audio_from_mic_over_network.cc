@@ -14,25 +14,9 @@ void playAudio() {
   while(1) {}
 }
 
-void fetchDataFromMic() {
-  Audio<transmission::BUFFER_SIZE>::PacketDeque ptr(NAME);
-  transmission::MicPacket packet_from_mic;
-  Audio<transmission::BUFFER_SIZE>::AudioPacket audio_packet;
-  transmission::DataFromMicRetriever data_from_mic_retriever;
-
-  while(1) {
-    {
-      auto resource = ptr->lock();
-      if(resource->full())
-        continue;
-    }
-
-    data_from_mic_retriever.fetchData(packet_from_mic);
-    transmission::DataConverter::micPacketToAudioPacket(packet_from_mic, audio_packet);
-
-    auto resource = ptr->lock();
-    *resource->push_front() = audio_packet;
-  }
+void transmitDataFromMicOverNetwork() {
+  transmission::DataTransmitter data_transmitter(NAME);
+  data_transmitter.transmit();
 }
 
 int forkAndExecute(std::function<void()> func) {
@@ -49,7 +33,7 @@ int forkAndExecute(std::function<void()> func) {
 int main() {
   int pid = forkAndExecute(playAudio);
   if (pid > 0)
-    pid = forkAndExecute(fetchDataFromMic);
+    pid = forkAndExecute(transmitDataFromMicOverNetwork);
   if (pid > 0) {
     wait(NULL);
   }

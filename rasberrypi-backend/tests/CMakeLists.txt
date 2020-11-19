@@ -1,7 +1,7 @@
 
 add_executable(dump_mic_to_file
         src/mic_dump_to_file.cc
-    )
+)
 
 add_executable(audio_generator
     src/audio_generator.cc
@@ -25,7 +25,7 @@ add_executable(spin_lock
 
 add_executable(network
         src/network.cc
-    )
+)
 
 add_executable(sem
     src/sem.cc
@@ -33,7 +33,11 @@ add_executable(sem
 
 add_executable(audio_from_mic
         src/audio_from_mic.cc
-        )
+)
+
+add_executable(audio_from_mic_over_network
+       src/audio_from_mic_over_network.cc
+)
 
 target_link_libraries(dump_mic_to_file phone)
 target_link_libraries(audio_generator phone)
@@ -44,4 +48,5 @@ target_link_libraries(spin_lock phone)
 target_link_libraries(network phone)
 target_link_libraries(sem phone)
 target_link_libraries(audio_from_mic phone)
+target_link_libraries(audio_from_mic_over_network phone)
 
