@@ -6,7 +6,8 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_BUILD_TYPE "Debug")
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-include_directories(inc)
+add_subdirectory(protocol)
+include_directories(inc ${PROTOCOL_INC})
 include_directories(rtaudio)
 add_subdirectory(rtaudio)
 
@@ -22,7 +23,18 @@ add_library(phone
 
 add_subdirectory(tests)
 
-target_link_libraries(phone rtaudio rt)
+target_link_libraries(phone rtaudio rt protocol)
+
+add_executable(proces1
+    src/proces1.cc
+)
+
+add_executable(proces2
+    src/proces2.cc
+)
+
+target_link_libraries(proces1 phone)
+target_link_libraries(proces2 phone)
 
 add_custom_target(CopyCompileCommands ALL
         ${CMAKE_COMMAND} -E copy_if_different
