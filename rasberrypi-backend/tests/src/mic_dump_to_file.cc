@@ -1,9 +1,10 @@
 #include "mic.hpp"
+#include "transmission.hpp"
 
 #include <iostream>
 #include <fstream>
 
-__attribute__((packed)) struct Packet {
+struct __attribute__((packed)) Packet {
 	uint32_t id;
 	int16_t data[128];
 	uint32_t crc;
@@ -15,7 +16,7 @@ int main(int argc, char* argv[]) {
         std::cout << "Usage " << argv[0] << " <file name>\n";
         return -1;
     }
-    Packet packet;
+    transmission::MicPacket packet;
 
     std::fstream file(argv[1], std::ios::out | std::ios::binary);
     Microphone mic;

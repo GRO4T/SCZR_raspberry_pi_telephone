@@ -16,6 +16,8 @@ add_library(phone
         inc/audio.hpp
         inc/ipc.hpp
         src/ipc.cc
+        inc/transmission.hpp
+        src/transmission.cc
     )
 
 add_subdirectory(tests)
