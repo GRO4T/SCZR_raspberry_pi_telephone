@@ -39,6 +39,10 @@ add_executable(audio_from_mic_over_network
        src/audio_from_mic_over_network.cc
 )
 
+add_executable(mock_mic_gen
+       src/mock_mic_generator.cc
+)
+
 target_link_libraries(dump_mic_to_file phone)
 target_link_libraries(audio_generator phone)
 target_link_libraries(audio_player phone)
@@ -49,4 +53,4 @@ target_link_libraries(network phone)
 target_link_libraries(sem phone)
 target_link_libraries(audio_from_mic phone)
 target_link_libraries(audio_from_mic_over_network phone)
-
+target_link_libraries(mock_mic_gen phone)

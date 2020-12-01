@@ -5,9 +5,8 @@
 #include <optional>
 
 #include "RtAudio.h"
+#include "config.hpp"
 #include "ipc.hpp"
-
-constexpr unsigned int DEQUE_SIZE = 1024;
 
 template <unsigned int frames = 64u>
 class Audio {

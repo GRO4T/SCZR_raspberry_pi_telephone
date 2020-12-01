@@ -84,7 +84,7 @@ int transmission::UDPSocket::fd() const {
   return sockfd;
 }
 
-bool transmission::FDSelector::add(const Microphone &mic) {
+bool transmission::FDSelector::add(const MicType &mic) {
   auto[it, inserted] = rd_fds.insert(mic.fd());
   return inserted;
 }
@@ -99,7 +99,7 @@ bool transmission::FDSelector::addRead(const UDPSocket &socket) {
   return inserted;
 }
 
-void transmission::FDSelector::remove(const Microphone &mic) {
+void transmission::FDSelector::remove(const MicType &mic) {
   rd_fds.erase(mic.fd());
 }
 
@@ -111,7 +111,7 @@ void transmission::FDSelector::removeRead(const UDPSocket &socket) {
   rd_fds.erase(socket.fd());
 }
 
-bool transmission::FDSelector::ready(const Microphone &mic) {
+bool transmission::FDSelector::ready(const MicType &mic) {
   return FD_ISSET(mic.fd(), &rd_set);
 }
 
@@ -197,7 +197,7 @@ void transmission::DataFromMicRetriever::handleDesynced(MicPacket &dest_packet) 
   }
 }
 
-const Microphone &transmission::DataFromMicRetriever::getMic() const {
+const transmission::MicType &transmission::DataFromMicRetriever::getMic() const {
   return mic;
 }
 

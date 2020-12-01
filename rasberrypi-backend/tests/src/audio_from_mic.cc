@@ -1,23 +1,22 @@
 #include "audio.hpp"
+#include "config.hpp"
 #include <transmission.hpp>
 #include <unistd.h>
 #include <sys/wait.h>
 #include <functional>
 
-constexpr char NAME[] = "/test_audio";
-
 void playAudio() {
-  Audio<transmission::BUFFER_SIZE> audio{20000};
-  Audio<transmission::BUFFER_SIZE>::PacketDeque ptr(NAME);
+  Audio<BUFFER_SIZE> audio{SAMPLING_RATE};
+  Audio<BUFFER_SIZE>::PacketDeque ptr(SHM_AUDIO_TEST_NAME);
 
   audio.play(ptr);
   while(1) {}
 }
 
 void fetchDataFromMic() {
-  Audio<transmission::BUFFER_SIZE>::PacketDeque ptr(NAME);
+  Audio<BUFFER_SIZE>::PacketDeque ptr(SHM_AUDIO_TEST_NAME);
   transmission::MicPacket packet_from_mic;
-  Audio<transmission::BUFFER_SIZE>::AudioPacket audio_packet;
+  Audio<BUFFER_SIZE>::AudioPacket audio_packet;
   transmission::DataFromMicRetriever data_from_mic_retriever;
 
   while(1) {

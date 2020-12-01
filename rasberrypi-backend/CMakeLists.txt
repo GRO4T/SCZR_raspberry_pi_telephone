@@ -14,6 +14,10 @@ add_subdirectory(rtaudio)
 add_library(phone
         inc/mic.hpp
         src/mic.cc
+        inc/mock_mic.hpp
+        src/mock_mic.cc
+        inc/mock_mic_generator.hpp
+        src/mock_mic_generator.cc
         inc/audio.hpp
         inc/ipc.hpp
         src/ipc.cc

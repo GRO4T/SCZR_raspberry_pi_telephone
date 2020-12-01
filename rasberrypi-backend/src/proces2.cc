@@ -1,5 +1,12 @@
-#include <iostream>
+#include "audio.hpp"
 
-int main(int argc, char* argv[]) {
+int main() {
+  Audio<NUM_FRAMES> audio{SAMPLING_RATE};
+  Audio<NUM_FRAMES>::PacketDeque ptr(SHM_AUDIO_TEST_NAME);
 
+  audio.play(ptr);
+  while(1) {}
+  audio.stop();
+
+  return 0;
 }
