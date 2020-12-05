@@ -47,7 +47,7 @@ int forkAndExecute(std::function<void(const Client&, std::string)> func, const C
   return child_pid;
 }
 
-int main(int argc, char * argv[]) {
+int main() {
   Client client1(IPv4("127.0.0.1"), IPv4("127.0.0.1"), 8081, 8082);
   Client client2(IPv4("127.0.0.1"), IPv4("127.0.0.1"), 8082, 8081);
   int pid = forkAndExecute(runClient, client1, "PING");

@@ -3,8 +3,11 @@
 
 #include <cstdint>
 
+#define I_DONT_HAVE_HARDWARE
+
 const unsigned int DEQUE_SIZE = 1024;
 
+const unsigned int SERIALIZED_SIZE = 270;
 const unsigned int BUFFER_SIZE = 128;
 const uint32_t PACKET_SIZE = BUFFER_SIZE * 2 + 8;
 const std::size_t DATA_SIZE = PACKET_SIZE - 8;

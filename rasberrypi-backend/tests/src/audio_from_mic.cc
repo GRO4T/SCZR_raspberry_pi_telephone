@@ -15,8 +15,8 @@ void playAudio() {
 
 void fetchDataFromMic() {
   Audio<BUFFER_SIZE>::PacketDeque ptr(SHM_AUDIO_TEST_NAME);
-  transmission::MicPacket packet_from_mic;
   Audio<BUFFER_SIZE>::AudioPacket audio_packet;
+  transmission::MicPacket packet_from_mic;
   transmission::DataFromMicRetriever data_from_mic_retriever;
 
   while(1) {

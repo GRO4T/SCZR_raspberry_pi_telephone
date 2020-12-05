@@ -69,10 +69,10 @@ void Audio<frames>::stop() {
 }
 
 template <unsigned int frames>
-int Audio<frames>::transfer(void* outputBuffer, void* inputBuffer, unsigned int nBufferFrames, double streamTime, RtAudioStreamStatus status, void* userData) {
+int Audio<frames>::transfer(void* outputBuffer, void* /*inputBuffer*/, unsigned int nBufferFrames, 
+  double /*streamTime*/, RtAudioStreamStatus /*status*/, void* userData) {
   Audio* audio = reinterpret_cast<Audio*>(userData);
   int16_t* outBuf = reinterpret_cast<int16_t*>(outputBuffer);
-
 
   typename fast_deque<AudioPacket, DEQUE_SIZE>::iterator it;
   bool valid = false;

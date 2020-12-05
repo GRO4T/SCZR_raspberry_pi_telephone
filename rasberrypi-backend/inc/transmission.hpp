@@ -25,7 +25,10 @@ struct __attribute__((__packed__)) MicPacket {
   uint32_t crc;
 };
 
-#define I_DONT_HAVE_HARDWARE
+struct __attribute__((__packed__)) ProtocolData {
+  uint32_t size;
+  uint8_t serialized_data[SERIALIZED_SIZE];
+};
 
 #ifdef I_DONT_HAVE_HARDWARE
     using MicType = MockMic;
@@ -123,6 +126,14 @@ public:
     DataTransmitter(const char *shm_name);
     void transmit();
 private:
+    enum class ConnectionState {
+        Start,
+        Established,
+        Cancelled
+    };
+
+    ConnectionState state;
+
     UDPSocket socket;
     FDSelector fd_selector;
 
@@ -137,6 +148,6 @@ private:
     void receiveFromNetworkAndPutInSharedMemory();
 };
 
-}
+} // namespace
 
 #endif

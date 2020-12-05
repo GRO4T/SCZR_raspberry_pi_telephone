@@ -31,7 +31,9 @@ bool MockMicGenerator::is_saturated() const {
   int cap = fcntl(fd_, F_GETPIPE_SZ);
   int size = 0;
   ioctl(fd_, FIONREAD, &size);
-  return cap - size < 10 * PACKET_SIZE;
+
+  size_t remaining = cap - size;
+  return remaining < 10 * PACKET_SIZE;
 }
 
 void MockMicGenerator::gen() {
