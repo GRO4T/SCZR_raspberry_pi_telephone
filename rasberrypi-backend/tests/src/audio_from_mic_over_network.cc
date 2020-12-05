@@ -1,21 +1,20 @@
 #include "audio.hpp"
+#include "config.hpp"
 #include <transmission.hpp>
 #include <unistd.h>
 #include <sys/wait.h>
 #include <functional>
 
-constexpr char NAME[] = "/test_audio";
-
 void playAudio() {
-  Audio<transmission::BUFFER_SIZE> audio{20000};
-  Audio<transmission::BUFFER_SIZE>::PacketDeque ptr(NAME);
+  Audio<BUFFER_SIZE> audio{SAMPLING_RATE};
+  Audio<BUFFER_SIZE>::PacketDeque ptr(SHM_AUDIO_TEST_NAME);
 
   audio.play(ptr);
   while(1) {}
 }
 
 void transmitDataFromMicOverNetwork() {
-  transmission::DataTransmitter data_transmitter(NAME);
+  transmission::DataTransmitter data_transmitter(SHM_AUDIO_TEST_NAME);
   data_transmitter.transmit();
 }
 

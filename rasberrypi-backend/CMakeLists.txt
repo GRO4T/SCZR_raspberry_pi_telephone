@@ -2,8 +2,14 @@ cmake_minimum_required(VERSION 3.0)
 
 project(telefon CXX)
 
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE Debug)
+endif()
+
 set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_BUILD_TYPE "Debug")
+set(CMAKE_CXX_FLAGS "-Wall -Wextra -fPIC")
+set(CMAKE_CXX_FLAGS_DEBUG "-ggdb")
+set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 add_subdirectory(protocol)
@@ -14,6 +20,10 @@ add_subdirectory(rtaudio)
 add_library(phone
         inc/mic.hpp
         src/mic.cc
+        inc/mock_mic.hpp
+        src/mock_mic.cc
+        inc/mock_mic_generator.hpp
+        src/mock_mic_generator.cc
         inc/audio.hpp
         inc/ipc.hpp
         src/ipc.cc

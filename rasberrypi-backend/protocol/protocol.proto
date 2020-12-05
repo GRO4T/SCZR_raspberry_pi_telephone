@@ -4,7 +4,7 @@ message Ping {}
 message Pong {}
 
 message Data {
-    string data = 1;
+    bytes data = 1;
 }
 
 message Request {

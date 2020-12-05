@@ -1,6 +1,6 @@
 #include "fd_selector.hpp"
 
-bool FDSelector::add(const Microphone &mic) {
+bool FDSelector::add(const MicType &mic) {
   auto[it, inserted] = rd_fds.insert(mic.fd());
   return inserted;
 }
@@ -30,7 +30,7 @@ bool FDSelector::addRead(const TCPConnection& conn) {
   return inserted;
 }
 
-void FDSelector::remove(const Microphone &mic) {
+void FDSelector::remove(const MicType &mic) {
   rd_fds.erase(mic.fd());
 }
 
@@ -54,7 +54,7 @@ void FDSelector::removeRead(const TCPConnection& conn) {
   rd_fds.erase(conn.fd());
 }
 
-bool FDSelector::ready(const Microphone &mic) {
+bool FDSelector::ready(const MicType &mic) {
   return FD_ISSET(mic.fd(), &rd_set);
 }
 
