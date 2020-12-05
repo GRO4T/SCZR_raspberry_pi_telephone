@@ -3,6 +3,7 @@
 
 #include "net.hpp"
 #include "mic.hpp"
+#include "mock_mic.hpp"
 #include "config.hpp"
 
 #include <chrono>

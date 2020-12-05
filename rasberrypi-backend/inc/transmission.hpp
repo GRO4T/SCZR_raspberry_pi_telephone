@@ -23,7 +23,6 @@ struct __attribute__((__packed__)) MicPacket {
 };
 
 struct __attribute__((__packed__)) ProtocolData {
-  uint32_t size;
   uint8_t serialized_data[SERIALIZED_SIZE];
 };
 

@@ -3,7 +3,7 @@
 
 #include <cstdint>
 
-//#define I_DONT_HAVE_HARDWARE
+#define I_DONT_HAVE_HARDWARE
 
 const unsigned int DEQUE_SIZE = 1024;
 

@@ -91,13 +91,10 @@ void DataTransmitter::fetchFromMicAndSendOverNetwork() {
   Data* data = new Data();
   data->set_data((char*)&packet_out, PACKET_SIZE);
   request.set_allocated_data(data);
-
-  std::string serialized_data;
-  request.SerializeToString(&serialized_data);
   
   ProtocolData data_wrapped{};
-  data_wrapped.size = sizeof(serialized_data);
-  memcpy(&data_wrapped.serialized_data, serialized_data.data(), SERIALIZED_SIZE);
+  const auto result = request.SerializeToArray(data_wrapped.serialized_data, SERIALIZED_SIZE);
+  assert(result);
 
   socket.send((char*)&data_wrapped, sizeof(data_wrapped));
 }
@@ -110,20 +107,16 @@ void DataTransmitter::receiveFromNetworkAndPutInSharedMemory() {
   }
 
   ProtocolData data_wrapped{};
-  socket.receive((char*)&data_wrapped.size, sizeof(data_wrapped.size));
-  socket.receive((char*)&data_wrapped.serialized_data, data_wrapped.size);
-
-  std::string serialized_data;
-  serialized_data.reserve(SERIALIZED_SIZE);
-  memcpy(serialized_data.data(), &data_wrapped.serialized_data, SERIALIZED_SIZE);
+  socket.receive((char*)&data_wrapped, sizeof(data_wrapped));
 
   Response response{};
-  const auto result = response.ParseFromString(serialized_data);
+  const auto result = response.ParseFromArray(data_wrapped.serialized_data, SERIALIZED_SIZE);
   assert(result);
 
   if(response.Content_case() == Response::ContentCase::kData) {
     const auto& data = response.data();
-    memcpy(&packet_in, &data.data(), PACKET_SIZE);
+    assert(data.data().size() == PACKET_SIZE);
+    memcpy(&packet_in, data.data().data(), PACKET_SIZE);
     assert(packet_in.id == PAC1 || packet_in.id == PAC2);
     DataConverter::micPacketToAudioPacket(packet_in, audio_packet);
 
