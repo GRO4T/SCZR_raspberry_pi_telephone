@@ -19,6 +19,10 @@ add_library(phone
         src/ipc.cc
         inc/transmission.hpp
         src/transmission.cc
+        inc/fd_selector.hpp
+        src/fd_selector.cc
+        inc/net.hpp
+        src/net.cc
     )
 
 add_subdirectory(tests)
