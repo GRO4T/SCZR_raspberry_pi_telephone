@@ -46,10 +46,24 @@ public:
     static void micPacketToAudioPacket(MicPacket &src, Audio<BUFFER_SIZE>::AudioPacket &dest);
 };
 
+using ConnPtr = std::unique_ptr<Connection>;
+
 class DataTransmitter {
 public:
-    DataTransmitter(const char *shm_name);
+    DataTransmitter(const char *shm_name, ConnPtr conn);
     void transmit();
+
+    void sendOnly() {
+      send = true;
+      receive = false;
+      fd_selector.removeRead(*conn);
+    }
+
+    void receiveOnly() {
+      send = false;
+      receive = true;
+      fd_selector.remove(data_from_mic_retriever.getMic());
+    }
 private:
     enum class ConnectionState {
         Start,
@@ -59,7 +73,7 @@ private:
 
     ConnectionState state;
 
-    UDPSocket socket;
+    ConnPtr conn;
     FDSelector fd_selector;
 
     DataFromMicRetriever data_from_mic_retriever;
@@ -68,6 +82,9 @@ private:
 
     Audio<BUFFER_SIZE>::AudioPacket audio_packet;
     Audio<BUFFER_SIZE>::PacketDeque shared_memory_deque;
+
+    bool send = true;
+    bool receive = true;
 
     void fetchFromMicAndSendOverNetwork();
     void receiveFromNetworkAndPutInSharedMemory();

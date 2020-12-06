@@ -79,7 +79,7 @@ std::string UDPSocket::getIncomingAddr() const {
   return IPv4(ntohl(incoming_addr.sin_addr.s_addr));
 }
 
-int UDPSocket::send(const char *buf, std::size_t bufsize) {
+int UDPSocket::write(const char *buf, std::size_t bufsize) {
   int bytes_sent = sendto(sockfd, buf, bufsize, MSG_CONFIRM, (const struct sockaddr *) &outgoing_addr, sizeof(outgoing_addr));
   if (bytes_sent == -1) {
     throw NetworkException("Error sending datagram");
@@ -87,7 +87,7 @@ int UDPSocket::send(const char *buf, std::size_t bufsize) {
   return bytes_sent;
 }
 
-int UDPSocket::receive(char *buf, std::size_t bufsize) {
+int UDPSocket::read(char *buf, std::size_t bufsize) {
   int len = sizeof(incoming_addr);
   int bytes_received;
   bytes_received = recvfrom(sockfd, buf, bufsize, MSG_WAITALL, (struct sockaddr *) &incoming_addr, (socklen_t *) &len);

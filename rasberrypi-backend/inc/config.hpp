@@ -3,7 +3,7 @@
 
 #include <cstdint>
 
-#define I_DONT_HAVE_HARDWARE
+//#define I_DONT_HAVE_HARDWARE
 
 const unsigned int DEQUE_SIZE = 1024;
 
@@ -19,7 +19,7 @@ const uint16_t constant_compound = 1551; // (1.25/3.3)*4096
 
 const char SHM_AUDIO_TEST_NAME[] = "/test_audio";
 const unsigned int NUM_FRAMES = 5012;
-const unsigned int SAMPLING_RATE = 44100;
+const unsigned int SAMPLING_RATE = 20000;
 
 
 #endif

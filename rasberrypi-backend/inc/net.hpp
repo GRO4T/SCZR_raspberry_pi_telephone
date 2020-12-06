@@ -43,8 +43,8 @@ public:
     void setOutgoingAddr(const IPv4 &ip4, int port = 8080);
     std::string getOutgoingAddr() const;
     std::string getIncomingAddr() const;
-    int send(const char *buf, std::size_t bufsize);
-    int receive(char *buf, std::size_t bufsize);
+    int write(const char *buf, std::size_t bufsize);
+    int read(char *buf, std::size_t bufsize);
     int fd() const;
 };
 

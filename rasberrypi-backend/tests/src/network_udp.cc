@@ -22,14 +22,14 @@ void runClient(const Client &client, std::string msg) {
   socket.setOutgoingAddr(client.dest, client.dest_port);
   FDSelector fd_selector;
   fd_selector.addRead(socket);
-  socket.send(msg.c_str(), msg.length());
+  socket.write(msg.c_str(), msg.length());
   while (true) {
     fd_selector.wait(std::chrono::milliseconds(10));
     if (fd_selector.readyRead(socket)) {
       memset(buf, 0, bufsize);
-      socket.receive(buf, bufsize);
+      socket.read(buf, bufsize);
       std::cout << buf << " received from " << socket.getIncomingAddr() << std::endl;
-      socket.send(msg.c_str(), msg.length());
+      socket.write(msg.c_str(), msg.length());
       sleep(1);
     }
   }

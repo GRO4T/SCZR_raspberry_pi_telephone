@@ -14,8 +14,8 @@ void playAudio() {
 }
 
 void transmitDataFromMicOverNetwork() {
-  transmission::DataTransmitter data_transmitter(SHM_AUDIO_TEST_NAME);
-  data_transmitter.transmit();
+  //transmission::DataTransmitter data_transmitter(SHM_AUDIO_TEST_NAME);
+  //data_transmitter.transmit();
 }
 
 int forkAndExecute(std::function<void()> func) {

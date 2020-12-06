@@ -38,7 +38,6 @@ void runServer(const IPv4& ip, int port, std::string msg) {
       conn->recvPayload(buffer);
       std::cout << "Server received: " << buffer << std::endl;
       conn->sendPayload(msg);
-      sleep(1);
     }
   }
 }

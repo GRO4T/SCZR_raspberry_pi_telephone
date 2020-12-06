@@ -4,6 +4,7 @@
 #include <arpa/inet.h>
 #include <cassert>
 #include <thread>
+#include <cstring>
 
 namespace transmission {
 
@@ -62,22 +63,35 @@ void DataConverter::micPacketToAudioPacket(MicPacket &src, Audio<BUFFER_SIZE>::A
   }
 }
 
-DataTransmitter::DataTransmitter(const char* shm_name) :
+DataTransmitter::DataTransmitter(const char* shm_name, ConnPtr conn) :
       state(ConnectionState::Start),
-      socket(IPv4("127.0.0.1")),
+      conn(std::move(conn)),
       shared_memory_deque(shm_name) {
-  socket.setOutgoingAddr(IPv4("127.0.0.1"));
+
+  /*
+  IPv4 ip("127.0.0.1");
+  int port = 8093;
+  srv.bind(ip, port);
+  srv.reuseaddr();
+  srv.listen();
+  client_conn = connect(ip, port);
+  server_conn = srv.accept();
+   */
   fd_selector.add(data_from_mic_retriever.getMic());
-  fd_selector.addRead(socket);
+  fd_selector.addRead(*this->conn);
 }
 
 void DataTransmitter::transmit() {
+  std::cout << "1";
   while (true) {
     fd_selector.wait(std::chrono::milliseconds(10));
     if (fd_selector.ready(data_from_mic_retriever.getMic())) {
+      std::cout << "sending..." << std::endl;
       fetchFromMicAndSendOverNetwork();
     }
-    if (fd_selector.readyRead(socket)) {
+    //if (fd_selector.readyRead(socket)) {
+    if (fd_selector.readyRead(*conn)) {
+      std::cout << "receiving..." << std::endl;
       receiveFromNetworkAndPutInSharedMemory();
     }
   }
@@ -96,7 +110,7 @@ void DataTransmitter::fetchFromMicAndSendOverNetwork() {
   const auto result = request.SerializeToArray(data_wrapped.serialized_data, SERIALIZED_SIZE);
   assert(result);
 
-  socket.send((char*)&data_wrapped, sizeof(data_wrapped));
+  conn->write((char*)&data_wrapped, sizeof(data_wrapped));
 }
 
 void DataTransmitter::receiveFromNetworkAndPutInSharedMemory() {
@@ -107,7 +121,7 @@ void DataTransmitter::receiveFromNetworkAndPutInSharedMemory() {
   }
 
   ProtocolData data_wrapped{};
-  socket.receive((char*)&data_wrapped, sizeof(data_wrapped));
+  conn->read((char*)&data_wrapped, sizeof(data_wrapped));
 
   Response response{};
   const auto result = response.ParseFromArray(data_wrapped.serialized_data, SERIALIZED_SIZE);
