@@ -14,8 +14,25 @@ void playAudio() {
 }
 
 void transmitDataFromMicOverNetwork() {
-  //transmission::DataTransmitter data_transmitter(SHM_AUDIO_TEST_NAME);
-  //data_transmitter.transmit();
+  IPv4 ip("127.0.0.1");
+  int port = 8081;
+  TCPServer srv;
+  srv.bind(ip, port);
+  srv.reuseaddr();
+  srv.listen();
+  auto conn = srv.accept();
+  transmission::DataTransmitter data_transmitter(SHM_AUDIO_TEST_NAME, std::move(conn));
+  data_transmitter.setMode(transmission::DataTransmitter::Mode::SEND_ONLY);
+  data_transmitter.transmit();
+}
+
+void receiveDataFromNetworkAndPutInSharedMemory() {
+  IPv4 ip("127.0.0.1");
+  int port = 8081;
+  auto client = connect(ip, port);
+  transmission::DataTransmitter data_transmitter(SHM_AUDIO_TEST_NAME, std::move(client));
+  data_transmitter.setMode(transmission::DataTransmitter::Mode::RECEIVE_ONLY);
+  data_transmitter.transmit();
 }
 
 int forkAndExecute(std::function<void()> func) {
@@ -31,8 +48,12 @@ int forkAndExecute(std::function<void()> func) {
 
 int main() {
   int pid = forkAndExecute(playAudio);
-  if (pid > 0)
+  if (pid > 0) {
     pid = forkAndExecute(transmitDataFromMicOverNetwork);
+    if (pid > 0) {
+      pid = forkAndExecute(receiveDataFromNetworkAndPutInSharedMemory);
+    }
+  }
   if (pid > 0) {
     wait(NULL);
   }

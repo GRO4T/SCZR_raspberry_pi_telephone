@@ -26,7 +26,6 @@ struct __attribute__((__packed__)) ProtocolData {
   uint8_t serialized_data[SERIALIZED_SIZE];
 };
 
-
 class DataFromMicRetriever {
 public:
     void fetchData(MicPacket &dest_packet);
@@ -50,20 +49,16 @@ using ConnPtr = std::unique_ptr<Connection>;
 
 class DataTransmitter {
 public:
+    enum class Mode {
+        SEND_RECEIVE,
+        RECEIVE_ONLY,
+        SEND_ONLY
+    };
+
     DataTransmitter(const char *shm_name, ConnPtr conn);
     void transmit();
+    void setMode(Mode mode);
 
-    void sendOnly() {
-      send = true;
-      receive = false;
-      fd_selector.removeRead(*conn);
-    }
-
-    void receiveOnly() {
-      send = false;
-      receive = true;
-      fd_selector.remove(data_from_mic_retriever.getMic());
-    }
 private:
     enum class ConnectionState {
         Start,
@@ -71,6 +66,8 @@ private:
         Cancelled
     };
 
+
+    Mode mode;
     ConnectionState state;
 
     ConnPtr conn;
@@ -82,9 +79,6 @@ private:
 
     Audio<BUFFER_SIZE>::AudioPacket audio_packet;
     Audio<BUFFER_SIZE>::PacketDeque shared_memory_deque;
-
-    bool send = true;
-    bool receive = true;
 
     void fetchFromMicAndSendOverNetwork();
     void receiveFromNetworkAndPutInSharedMemory();

@@ -67,16 +67,7 @@ DataTransmitter::DataTransmitter(const char* shm_name, ConnPtr conn) :
       state(ConnectionState::Start),
       conn(std::move(conn)),
       shared_memory_deque(shm_name) {
-
-  /*
-  IPv4 ip("127.0.0.1");
-  int port = 8093;
-  srv.bind(ip, port);
-  srv.reuseaddr();
-  srv.listen();
-  client_conn = connect(ip, port);
-  server_conn = srv.accept();
-   */
+  mode = Mode::SEND_RECEIVE;
   fd_selector.add(data_from_mic_retriever.getMic());
   fd_selector.addRead(*this->conn);
 }
@@ -95,6 +86,26 @@ void DataTransmitter::transmit() {
       receiveFromNetworkAndPutInSharedMemory();
     }
   }
+}
+
+void DataTransmitter::setMode(Mode mode) {
+  if (this->mode == mode) return; // if new mode the same do nothing
+  std::cout << "setting a new mode" << std::endl;
+  if (mode == Mode::SEND_RECEIVE) {
+    if (this->mode == Mode::RECEIVE_ONLY) { // if previous mode was receive only add mic
+      fd_selector.add(data_from_mic_retriever.getMic());
+    }
+    else { // add connection otherwise
+      fd_selector.addRead(*conn);
+    }
+  }
+  else if (mode == Mode::RECEIVE_ONLY) {
+    fd_selector.remove(data_from_mic_retriever.getMic());
+  }
+  else if (mode == Mode::SEND_ONLY) {
+    fd_selector.removeRead(*conn);
+  }
+  this->mode = mode;
 }
 
 void DataTransmitter::fetchFromMicAndSendOverNetwork() {
