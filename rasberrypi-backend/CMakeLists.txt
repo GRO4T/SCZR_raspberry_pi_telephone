@@ -17,7 +17,7 @@ include_directories(inc ${PROTOCOL_INC})
 include_directories(rtaudio)
 add_subdirectory(rtaudio)
 
-add_library(phone
+add_library(phone STATIC
         inc/mic.hpp
         src/mic.cc
         inc/mock_mic.hpp
