@@ -3,6 +3,7 @@
 
 #include <arpa/inet.h>
 #include <cassert>
+#include <stdexcept>
 #include <thread>
 #include <cstring>
 
@@ -117,11 +118,16 @@ void DataTransmitter::fetchFromMicAndSendOverNetwork() {
   data->set_data((char*)&packet_out, PACKET_SIZE);
   request.set_allocated_data(data);
   
-  ProtocolData data_wrapped{};
-  const auto result = request.SerializeToArray(data_wrapped.serialized_data, SERIALIZED_SIZE);
-  assert(result);
+  std::string data_str; 
 
-  conn->write((char*)&data_wrapped, sizeof(data_wrapped));
+  /* ProtocolData data_wrapped{}; */
+  /* const auto result = request.SerializeToArray(data_wrapped.serialized_data, SERIALIZED_SIZE); */
+  /* assert(result); */
+  if (!request.SerializeToString(&data_str)) {
+    throw std::runtime_error("serialization error");
+  }
+
+  while(!conn->sendPayload(data_str)); 
 }
 
 void DataTransmitter::receiveFromNetworkAndPutInSharedMemory() {
@@ -131,12 +137,21 @@ void DataTransmitter::receiveFromNetworkAndPutInSharedMemory() {
       return;
   }
 
-  ProtocolData data_wrapped{};
-  conn->read((char*)&data_wrapped, sizeof(data_wrapped));
+  std::string data_str;
+  while(!conn->recvPayload(data_str));
+  Response response;
+  if (!response.ParseFromString(data_str)) {
+    throw std::runtime_error("deserialization error");
+  } 
 
-  Response response{};
-  const auto result = response.ParseFromArray(data_wrapped.serialized_data, SERIALIZED_SIZE);
-  assert(result);
+  /* * */
+  /* * ProtocolData data_wrapped{}; *1/ */
+  /* conn->read((char*)&data_wrapped, sizeof(data_wrapped)); */
+
+  /* Response response{}; */
+  /* const auto result = response.ParseFromArray(data_wrapped.serialized_data, SERIALIZED_SIZE); */
+  /* if (!result) */
+  /*     return; */
 
   if(response.Content_case() == Response::ContentCase::kData) {
     const auto& data = response.data();
