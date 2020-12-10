@@ -289,7 +289,7 @@ void fast_deque<T, N>::reset() noexcept {
 template<typename T>
 template<typename ... Args>
 spin_locked_resource<T>::spin_locked_resource(Args&&... args) 
-    : obj(std::forward<Args>(args)... ), lock_(false) {}
+    : lock_(false), obj(std::forward<Args>(args)... ) {}
 
 template<typename T>
 typename spin_locked_resource<T>::locked_resource spin_locked_resource<T>::lock() noexcept {

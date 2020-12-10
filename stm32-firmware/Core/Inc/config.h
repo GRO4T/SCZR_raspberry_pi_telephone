@@ -9,7 +9,7 @@
 #define INC_CONFIG_H_
 
 #define LED_ON_SOUND_LEVEL 1700
-#define BUFFER_SIZE 128
+#define BUFFER_SIZE 1024
 #define ADC_SAMPLING_TIME ADC_SAMPLETIME_1CYCLE_5
 
 // Probing frequency in Hz

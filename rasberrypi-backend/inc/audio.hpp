@@ -5,15 +5,15 @@
 #include <optional>
 
 #include "RtAudio.h"
+#include "config.hpp"
 #include "ipc.hpp"
-
-constexpr unsigned int DEQUE_SIZE = 1024;
 
 template <unsigned int frames = 64u>
 class Audio {
 public:
   struct AudioPacket {
     uint16_t data[frames];
+    uint32_t reserved;
   };
 
   using PacketDeque = shared_mem_ptr<spin_locked_resource<fast_deque<AudioPacket, DEQUE_SIZE>>>;
@@ -70,10 +70,10 @@ void Audio<frames>::stop() {
 }
 
 template <unsigned int frames>
-int Audio<frames>::transfer(void* outputBuffer, void* inputBuffer, unsigned int nBufferFrames, double streamTime, RtAudioStreamStatus status, void* userData) {
+int Audio<frames>::transfer(void* outputBuffer, void* /*inputBuffer*/, unsigned int nBufferFrames, 
+  double /*streamTime*/, RtAudioStreamStatus /*status*/, void* userData) {
   Audio* audio = reinterpret_cast<Audio*>(userData);
   int16_t* outBuf = reinterpret_cast<int16_t*>(outputBuffer);
-
 
   typename fast_deque<AudioPacket, DEQUE_SIZE>::iterator it;
   bool valid = false;
@@ -83,7 +83,7 @@ int Audio<frames>::transfer(void* outputBuffer, void* inputBuffer, unsigned int 
     valid = resource->valid(it);
   }
   
-  if(valid)
+  if(valid) 
     std::memcpy(outBuf, it->data, nBufferFrames * sizeof(uint16_t));
   else
     std::memset(outBuf, 0, nBufferFrames * sizeof(uint16_t));

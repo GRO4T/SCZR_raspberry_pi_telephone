@@ -1,16 +1,12 @@
 #include "audio.hpp"
-
-constexpr char NAME[] = "/test_audio";
-
-constexpr unsigned int NumFrames = 5012;
+#include "config.hpp"
 
 int main() {
-  Audio<NumFrames> audio{44100};
-  Audio<NumFrames>::PacketDeque ptr(NAME);
+  Audio<NUM_FRAMES> audio{SAMPLING_RATE};
+  Audio<NUM_FRAMES>::PacketDeque ptr(SHM_AUDIO_TEST_NAME);
 
   audio.play(ptr);
   while(1) {}
-  audio.stop();
 
   return 0;
 }

@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+message Ping {}
+message Pong {}
+
+message Data {
+    bytes data = 1;
+}
+
+message Request {
+    oneof Content {
+        Ping ping = 1;
+        Data data = 2;
+    }
+}
+
+message Response {
+    oneof Content {
+        Pong pong = 1;
+        Data data = 2;
+    }
+}

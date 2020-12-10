@@ -1,15 +1,12 @@
 #include "audio.hpp"
+#include "config.hpp"
 
 #include <cmath>
 
-constexpr char NAME[] = "/test_audio";
-
-constexpr unsigned int NumFrames = 5012;
-
 int main() {
-  Audio<NumFrames>::PacketDeque ptr(NAME);
+  Audio<NUM_FRAMES>::PacketDeque ptr(SHM_AUDIO_TEST_NAME);
   float t = 0.0;
-  float dt = 1.0/44100.0;
+  float dt = 1.0/SAMPLING_RATE;
 
   while(1) {
     {
@@ -18,11 +15,12 @@ int main() {
         continue;
     }
 
-    Audio<NumFrames>::AudioPacket packet;
-    for(unsigned int i = 0; i < NumFrames; ++i) {
+    Audio<NUM_FRAMES>::AudioPacket packet;
+    for(unsigned int i = 0; i < NUM_FRAMES; ++i) {
       packet.data[i] = 0.1 * 65536 * 0.5 * (std::sin(420*t*2.0*M_PI) + 1.0);
       t += dt;
     }
+    packet.reserved = 42;
 
     auto resource = ptr->lock();
     *resource->push_front() = packet;

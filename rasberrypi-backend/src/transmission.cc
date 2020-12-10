@@ -1,160 +1,15 @@
 #include "transmission.hpp"
+#include "protocol.pb.h"
 
-#include <iostream>
-#include <fstream>
 #include <arpa/inet.h>
-#include <unistd.h>
 #include <cassert>
+#include <stdexcept>
 #include <thread>
+#include <cstring>
 
-transmission::IPv4::IPv4(const std::string &str) : IPv4(str.c_str()) {}
+namespace transmission {
 
-transmission::IPv4::IPv4(const char *ptr) {
-  if (inet_pton(AF_INET, ptr, &addr) != 1) {
-    throw NetworkException("Not a proper IPv4 address");
-  }
-}
-
-transmission::IPv4::IPv4(unsigned long int _addr) {
-  addr.s_addr = htonl(_addr);
-}
-
-const in_addr &transmission::IPv4::address() const noexcept {
-  return addr;
-}
-
-transmission::IPv4::operator std::string() const {
-  char str[INET_ADDRSTRLEN];
-  inet_ntop(AF_INET, &(addr), str, INET_ADDRSTRLEN);
-  return std::string(str);
-}
-
-transmission::UDPSocket::UDPSocket(const IPv4 &ip4, int port) {
-  if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
-    throw NetworkException("Socket creation failed");
-  }
-  int enable = 1;
-  if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) < 0)
-    throw NetworkException("setsockopt(SO_REUSEADDR) failed");
-  addr.sin_family = AF_INET;
-  addr.sin_addr.s_addr = ip4.address().s_addr;
-  addr.sin_port = htons(port);
-  if (bind(sockfd, (const struct sockaddr *) &addr, sizeof(addr)) < 0) {
-    throw NetworkException("Bind failed.");
-  }
-}
-
-transmission::UDPSocket::~UDPSocket() {
-  close(sockfd);
-}
-
-void transmission::UDPSocket::setOutgoingAddr(const IPv4 &ip4, int port) {
-  outgoing_addr.sin_family = AF_INET;
-  outgoing_addr.sin_addr.s_addr = ip4.address().s_addr;
-  outgoing_addr.sin_port = htons(port);
-}
-
-std::string transmission::UDPSocket::getOutgoingAddr() const {
-  return IPv4(ntohl(outgoing_addr.sin_addr.s_addr));
-}
-
-std::string transmission::UDPSocket::getIncomingAddr() const {
-  return IPv4(ntohl(incoming_addr.sin_addr.s_addr));
-}
-
-int transmission::UDPSocket::send(const char *buf, std::size_t bufsize) {
-  int bytes_sent = sendto(sockfd, buf, bufsize, MSG_CONFIRM, (const struct sockaddr *) &outgoing_addr, sizeof(outgoing_addr));
-  if (bytes_sent == -1) {
-    throw NetworkException("Error sending datagram");
-  }
-  return bytes_sent;
-}
-
-int transmission::UDPSocket::receive(char *buf, std::size_t bufsize) {
-  int len = sizeof(incoming_addr);
-  int bytes_received;
-  bytes_received = recvfrom(sockfd, buf, bufsize, MSG_WAITALL, (struct sockaddr *) &incoming_addr, (socklen_t *) &len);
-  if (bytes_received == -1) {
-    throw NetworkException("Error receiving datagram");
-  }
-  return bytes_received;
-}
-
-int transmission::UDPSocket::fd() const {
-  return sockfd;
-}
-
-bool transmission::FDSelector::add(const Microphone &mic) {
-  auto[it, inserted] = rd_fds.insert(mic.fd());
-  return inserted;
-}
-
-bool transmission::FDSelector::addWrite(const UDPSocket &socket) {
-  auto[it, inserted] = wr_fds.insert(socket.fd());
-  return inserted;
-}
-
-bool transmission::FDSelector::addRead(const UDPSocket &socket) {
-  auto[it, inserted] = rd_fds.insert(socket.fd());
-  return inserted;
-}
-
-void transmission::FDSelector::remove(const Microphone &mic) {
-  rd_fds.erase(mic.fd());
-}
-
-void transmission::FDSelector::removeWrite(const UDPSocket &socket) {
-  wr_fds.erase(socket.fd());
-}
-
-void transmission::FDSelector::removeRead(const UDPSocket &socket) {
-  rd_fds.erase(socket.fd());
-}
-
-bool transmission::FDSelector::ready(const Microphone &mic) {
-  return FD_ISSET(mic.fd(), &rd_set);
-}
-
-bool transmission::FDSelector::readyWrite(const UDPSocket &socket) {
-  return FD_ISSET(socket.fd(), &wr_set);
-}
-
-bool transmission::FDSelector::readyRead(const UDPSocket &socket) {
-  return FD_ISSET(socket.fd(), &rd_set);
-}
-
-bool transmission::FDSelector::wait(std::chrono::milliseconds ms) {
-  FD_ZERO(&rd_set);
-  FD_ZERO(&wr_set);
-  int max = 0;
-  for (auto fd : rd_fds) {
-    FD_SET(fd, &rd_set);
-    max = std::max(max, fd);
-  }
-  for (auto fd : wr_fds) {
-    FD_SET(fd, &wr_set);
-    max = std::max(max, fd);
-  }
-  timeval duration;
-  std::size_t sec = std::chrono::duration_cast<std::chrono::seconds>(ms).count();
-  std::size_t us = std::chrono::duration_cast<std::chrono::microseconds>(ms % 1000).count();
-  duration.tv_sec = sec;
-  duration.tv_usec = us;
-  if (::select(max + 1, &rd_set, &wr_set, nullptr, &duration) <= 0) {
-    return false;
-  } else {
-    return true;
-  }
-}
-
-void transmission::FDSelector::clear() {
-  rd_fds.clear();
-  wr_fds.clear();
-  FD_ZERO(&rd_set);
-  FD_ZERO(&wr_set);
-}
-
-void transmission::DataFromMicRetriever::fetchData(MicPacket &dest_packet) {
+void DataFromMicRetriever::fetchData(MicPacket &dest_packet) {
   if (!mic_synced) {
     handleDesynced(dest_packet);
   } else {
@@ -162,7 +17,7 @@ void transmission::DataFromMicRetriever::fetchData(MicPacket &dest_packet) {
   }
 }
 
-void transmission::DataFromMicRetriever::handleSynced(MicPacket &dest_packet) {
+void DataFromMicRetriever::handleSynced(MicPacket &dest_packet) {
   int n = mic.read(buffer_tmp, PACKET_SIZE);
   assert(n == PACKET_SIZE);
   memcpy((char *) &dest_packet.id, buffer_tmp, 4); // copy id
@@ -174,7 +29,7 @@ void transmission::DataFromMicRetriever::handleSynced(MicPacket &dest_packet) {
   memcpy((char *) dest_packet.data, buffer_tmp + 4, PACKET_SIZE - 4); // copy rest of the packet
 }
 
-void transmission::DataFromMicRetriever::handleDesynced(MicPacket &dest_packet) {
+void DataFromMicRetriever::handleDesynced(MicPacket &dest_packet) {
   mic.read(buffer_tmp, PACKET_SIZE);
   // find id
   for (std::size_t i = 0; i < PACKET_SIZE; ++i) {
@@ -191,59 +46,124 @@ void transmission::DataFromMicRetriever::handleDesynced(MicPacket &dest_packet) 
   std::size_t remaining_bytes = PACKET_SIZE - synced_at - 4;
   memcpy((char *) dest_packet.data, buffer_tmp + synced_at + 4, remaining_bytes);
   if (remaining_bytes < PACKET_SIZE - 4) { // more data needs to be fetched (we didn't sync at byte 0)
-    int rest_of_the_bytes = mic.read(buffer_tmp, PACKET_SIZE - 4 - remaining_bytes);
+    const auto rest_of_the_bytes = mic.read(buffer_tmp, PACKET_SIZE - 4 - remaining_bytes);
     assert(rest_of_the_bytes == PACKET_SIZE - 4 - remaining_bytes);
     memcpy((char *) dest_packet.data + remaining_bytes, buffer_tmp, rest_of_the_bytes); // rest of the data
   }
 }
 
-const Microphone &transmission::DataFromMicRetriever::getMic() const {
+const MicType &transmission::DataFromMicRetriever::getMic() const {
   return mic;
 }
 
-void transmission::DataConverter::micPacketToAudioPacket(MicPacket &src, Audio<BUFFER_SIZE>::AudioPacket &dest) {
+void DataConverter::micPacketToAudioPacket(MicPacket &src, Audio<BUFFER_SIZE>::AudioPacket &dest) {
   memcpy((char *) dest.data, (char *) src.data, DATA_SIZE);
   for (std::size_t i = 0; i < BUFFER_SIZE; ++i) {
     dest.data[i] -= constant_compound;
     dest.data[i] *= 3;
   }
+  dest.reserved = src.crc;
 }
 
-transmission::DataTransmitter::DataTransmitter(const char* shm_name) :
-      socket(IPv4("127.0.0.1")),
+DataTransmitter::DataTransmitter(const char* shm_name, ConnPtr conn) :
+      state(ConnectionState::Start),
+      conn(std::move(conn)),
       shared_memory_deque(shm_name) {
-  socket.setOutgoingAddr(IPv4("127.0.0.1"));
+  mode = Mode::SEND_RECEIVE;
   fd_selector.add(data_from_mic_retriever.getMic());
-  fd_selector.addRead(socket);
+  fd_selector.addRead(*this->conn);
 }
 
-void transmission::DataTransmitter::transmit() {
+void DataTransmitter::transmit() {
+  std::cout << "1";
   while (true) {
     fd_selector.wait(std::chrono::milliseconds(10));
     if (fd_selector.ready(data_from_mic_retriever.getMic())) {
+      std::cout << "sending..." << std::endl;
       fetchFromMicAndSendOverNetwork();
     }
-    if (fd_selector.readyRead(socket)) {
+    //if (fd_selector.readyRead(socket)) {
+    if (fd_selector.readyRead(*conn)) {
+      std::cout << "receiving..." << std::endl;
       receiveFromNetworkAndPutInSharedMemory();
     }
   }
 }
 
-void transmission::DataTransmitter::fetchFromMicAndSendOverNetwork() {
+void DataTransmitter::setMode(Mode mode) {
+  if (this->mode == mode) return; // if new mode the same do nothing
+  std::cout << "setting a new mode" << std::endl;
+  if (mode == Mode::SEND_RECEIVE) {
+    if (this->mode == Mode::RECEIVE_ONLY) { // if previous mode was receive only add mic
+      fd_selector.add(data_from_mic_retriever.getMic());
+    }
+    else { // add connection otherwise
+      fd_selector.addRead(*conn);
+    }
+  }
+  else if (mode == Mode::RECEIVE_ONLY) {
+    fd_selector.remove(data_from_mic_retriever.getMic());
+  }
+  else if (mode == Mode::SEND_ONLY) {
+    fd_selector.removeRead(*conn);
+  }
+  this->mode = mode;
+}
+
+void DataTransmitter::fetchFromMicAndSendOverNetwork() {
   data_from_mic_retriever.fetchData(packet_out);
   assert(packet_out.id == PAC1 || packet_out.id == PAC2);
-  socket.send((char *) &packet_out, PACKET_SIZE);
+
+  Request request{};
+  Data* data = new Data();
+  data->set_data((char*)&packet_out, PACKET_SIZE);
+  request.set_allocated_data(data);
+  
+  std::string data_str; 
+
+  /* ProtocolData data_wrapped{}; */
+  /* const auto result = request.SerializeToArray(data_wrapped.serialized_data, SERIALIZED_SIZE); */
+  /* assert(result); */
+  if (!request.SerializeToString(&data_str)) {
+    throw std::runtime_error("serialization error");
+  }
+
+  while(!conn->sendPayload(data_str)); 
 }
-void transmission::DataTransmitter::receiveFromNetworkAndPutInSharedMemory() {
+
+void DataTransmitter::receiveFromNetworkAndPutInSharedMemory() {
   {
     auto resource = shared_memory_deque->lock();
     if(resource->full())
       return;
   }
-  socket.receive((char *) &packet_in, PACKET_SIZE);
-  assert(packet_in.id == PAC1 || packet_in.id == PAC2);
-  transmission::DataConverter::micPacketToAudioPacket(packet_in, audio_packet);
 
-  auto resource = shared_memory_deque->lock();
-  *resource->push_front() = audio_packet;
+  std::string data_str;
+  while(!conn->recvPayload(data_str));
+  Response response;
+  if (!response.ParseFromString(data_str)) {
+    throw std::runtime_error("deserialization error");
+  } 
+
+  /* * */
+  /* * ProtocolData data_wrapped{}; *1/ */
+  /* conn->read((char*)&data_wrapped, sizeof(data_wrapped)); */
+
+  /* Response response{}; */
+  /* const auto result = response.ParseFromArray(data_wrapped.serialized_data, SERIALIZED_SIZE); */
+  /* if (!result) */
+  /*     return; */
+
+  if(response.Content_case() == Response::ContentCase::kData) {
+    const auto& data = response.data();
+    assert(data.data().size() == PACKET_SIZE);
+    memcpy(&packet_in, data.data().data(), PACKET_SIZE);
+    assert(packet_in.id == PAC1 || packet_in.id == PAC2);
+    DataConverter::micPacketToAudioPacket(packet_in, audio_packet);
+
+    auto resource = shared_memory_deque->lock();
+    *resource->push_front() = audio_packet;
+  }
+}
+
 }
