@@ -62,6 +62,7 @@ void DataConverter::micPacketToAudioPacket(MicPacket &src, Audio<BUFFER_SIZE>::A
     dest.data[i] -= constant_compound;
     dest.data[i] *= 3;
   }
+  dest.reserved = src.crc;
 }
 
 DataTransmitter::DataTransmitter(const char* shm_name, ConnPtr conn) :

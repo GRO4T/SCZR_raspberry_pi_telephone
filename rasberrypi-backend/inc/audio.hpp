@@ -13,6 +13,7 @@ class Audio {
 public:
   struct AudioPacket {
     uint16_t data[frames];
+    uint32_t reserved;
   };
 
   using PacketDeque = shared_mem_ptr<spin_locked_resource<fast_deque<AudioPacket, DEQUE_SIZE>>>;
@@ -82,7 +83,7 @@ int Audio<frames>::transfer(void* outputBuffer, void* /*inputBuffer*/, unsigned 
     valid = resource->valid(it);
   }
   
-  if(valid)
+  if(valid) 
     std::memcpy(outBuf, it->data, nBufferFrames * sizeof(uint16_t));
   else
     std::memset(outBuf, 0, nBufferFrames * sizeof(uint16_t));

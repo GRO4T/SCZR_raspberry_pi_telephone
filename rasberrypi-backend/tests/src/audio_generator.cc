@@ -20,6 +20,7 @@ int main() {
       packet.data[i] = 0.1 * 65536 * 0.5 * (std::sin(420*t*2.0*M_PI) + 1.0);
       t += dt;
     }
+    packet.reserved = 42;
 
     auto resource = ptr->lock();
     *resource->push_front() = packet;

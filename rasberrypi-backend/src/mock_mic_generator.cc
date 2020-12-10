@@ -38,7 +38,7 @@ bool MockMicGenerator::is_saturated() const {
 
 void MockMicGenerator::gen() {
   int16_t buf[BUFFER_SIZE];
-  const uint32_t mock_crc = 0;
+  const uint32_t mock_crc = 0xDEADBEEF;
   const float dt = 1.0/44100.0;
 
   for(unsigned int i = 0; i < BUFFER_SIZE; ++i) {
