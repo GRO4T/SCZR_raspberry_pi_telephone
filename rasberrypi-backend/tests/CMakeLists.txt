@@ -47,6 +47,14 @@ add_executable(mock_mic_gen
        src/mock_mic_generator.cc
 )
 
+if (BUILD_BENCHMARK)
+    add_executable(benchmark
+        src/benchmark.cc
+    )
+
+    target_link_libraries(benchmark phone wiringPi)
+endif()
+
 target_link_libraries(dump_mic_to_file phone)
 target_link_libraries(audio_generator phone)
 target_link_libraries(audio_player phone)

@@ -154,6 +154,7 @@ int main(void)
   MX_ADC1_Init();
   MX_CRC_Init();
   /* USER CODE BEGIN 2 */
+  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET);
   init_buffers();
   HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_SET);
   HAL_ADCEx_Calibration_Start(&hadc1);
@@ -163,10 +164,18 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+  uint32_t ctr = 0;
   while (1)
   {
 	  if (new_data_to_send == 1) {
-		  packet_to_send->crc = HAL_CRC_Calculate(&hcrc, packet_to_send->data, sizeof(packet_to_send->data) / sizeof(uint32_t));
+		  if (HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_5) == GPIO_PIN_RESET) {
+			  new_data_to_send = 0;
+			  ctr = 0;
+			  continue;
+		  }
+//		  packet_to_send->crc = HAL_CRC_Calculate(&hcrc, packet_to_send->data, sizeof(packet_to_send->data) / sizeof(uint32_t));
+		  packet_to_send->crc = ctr++;
+		  HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_4);
 		  CDC_Transmit_FS((uint8_t*)packet_to_send, sizeof(struct Packet));
 		  new_data_to_send = 0;
 	  }
@@ -389,12 +398,28 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_RESET);
 
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET);
+
   /*Configure GPIO pin : PC13 */
   GPIO_InitStruct.Pin = GPIO_PIN_13;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : PA4 */
+  GPIO_InitStruct.Pin = GPIO_PIN_4;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : PA5 */
+  GPIO_InitStruct.Pin = GPIO_PIN_5;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
 }
 
