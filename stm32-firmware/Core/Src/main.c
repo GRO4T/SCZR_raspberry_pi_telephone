@@ -170,6 +170,7 @@ int main(void)
 	  if (new_data_to_send == 1) {
 		  if (HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_5) == GPIO_PIN_RESET) {
 			  new_data_to_send = 0;
+			  ctr = 0;
 			  continue;
 		  }
 //		  packet_to_send->crc = HAL_CRC_Calculate(&hcrc, packet_to_send->data, sizeof(packet_to_send->data) / sizeof(uint32_t));
