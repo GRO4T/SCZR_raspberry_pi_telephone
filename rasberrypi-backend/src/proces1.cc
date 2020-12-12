@@ -22,7 +22,15 @@ void runClient(IPv4& ip, int port, transmission::DataTransmitter::Mode transmiss
 
 int main(int argc, char*argv[]) {
   if (argc < 2) {
-    std::cout << "Usage: ./proces1 -host|-client ip port [-s|-r]" << std::endl;
+    std::cout << "Uzycie: ./proces1 -host|-client ip port [-s|-r]" << std::endl;
+    std::cout << "\t-host : uruchom proces jako serwer" << std::endl;
+    std::cout << "\t-client : uruchom proces jako klient" << std::endl;
+    std::cout << "\tip : " << std::endl;
+    std::cout << "\t\tdla serwera - adres na ktorym nasluchuje prob polaczenia TCP" << std::endl;
+    std::cout << "\t\tdla klienta - adres z ktorym chcemy nawiazac polaczenie TCP" << std::endl;
+    std::cout << "\tport : numer portu" << std::endl;
+    std::cout << "\t-r : uruchom proces w trybie RECEIVE_ONLY" << std::endl;
+    std::cout << "\t-s : uruchom proces w trybie SEND_ONLY" << std::endl;
     return 1;
   }
   std::string conn_type = argv[1];
