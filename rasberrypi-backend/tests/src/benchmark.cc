@@ -72,12 +72,12 @@ std::optional<uint32_t> try_recv_packet(auto & ptr) {
     return {};
 }
 
-class D {
+class DFlipFlop {
     uint32_t previous;
     uint32_t current;
     uint32_t pin;
 public:
-    D(uint32_t pin) : pin(pin) {
+    DFlipFlop(uint32_t pin) : pin(pin) {
         previous = current = digitalRead(pin);
     }
 
@@ -119,7 +119,7 @@ void make_summary(std::size_t last) {
 void playAudio() {
   signal(SIGINT, &signal_handler);
   Audio<BUFFER_SIZE>::PacketDeque ptr(SHM_AUDIO_TEST_NAME);
-  D d(NEW_PACKET_PIN);
+  DFlipFlop d(NEW_PACKET_PIN);
   
   std::this_thread::sleep_for(1s);
   

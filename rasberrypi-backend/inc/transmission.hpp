@@ -22,10 +22,6 @@ struct __attribute__((__packed__)) MicPacket {
   uint32_t crc;
 };
 
-struct __attribute__((__packed__)) ProtocolData {
-  uint8_t serialized_data[SERIALIZED_SIZE];
-};
-
 class DataFromMicRetriever {
 public:
     void fetchData(MicPacket &dest_packet);
@@ -60,15 +56,7 @@ public:
     void setMode(Mode mode);
 
 private:
-    enum class ConnectionState {
-        Start,
-        Established,
-        Cancelled
-    };
-
-
     Mode mode;
-    ConnectionState state;
 
     ConnPtr conn;
     FDSelector fd_selector;

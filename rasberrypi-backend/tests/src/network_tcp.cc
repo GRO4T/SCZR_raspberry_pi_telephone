@@ -52,7 +52,7 @@ int forkAndExecute(std::function<void(const IPv4&, int, std::string)> func, cons
   return child_pid;
 }
 
-int main(int argc, char *argv[]) {
+int main() {
   const IPv4& ip = IPv4("127.0.0.1");
   int port = 8081;
   int pid = forkAndExecute(runServer, ip, port, "Hello it's a server (PING)");

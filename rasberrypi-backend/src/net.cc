@@ -141,8 +141,6 @@ std::size_t TCPConnection::write(const char* buffer, std::size_t buffer_size) co
   ssize_t result = ::send(sockfd, buffer, buffer_size, 0);
   if (result < 0) {
     throw NetworkException();
-    //} else if (result == 0) {
-    //    throw NetworkException("No data sent");
   } else {
     return static_cast<std::size_t>(result);
   }

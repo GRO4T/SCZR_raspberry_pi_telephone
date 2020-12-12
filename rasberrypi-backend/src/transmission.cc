@@ -66,7 +66,6 @@ void DataConverter::micPacketToAudioPacket(MicPacket &src, Audio<BUFFER_SIZE>::A
 }
 
 DataTransmitter::DataTransmitter(const char* shm_name, ConnPtr conn) :
-      state(ConnectionState::Start),
       conn(std::move(conn)),
       shared_memory_deque(shm_name) {
   mode = Mode::SEND_RECEIVE;
@@ -82,7 +81,6 @@ void DataTransmitter::transmit() {
       std::cout << "sending..." << std::endl;
       fetchFromMicAndSendOverNetwork();
     }
-    //if (fd_selector.readyRead(socket)) {
     if (fd_selector.readyRead(*conn)) {
       std::cout << "receiving..." << std::endl;
       receiveFromNetworkAndPutInSharedMemory();
@@ -121,9 +119,6 @@ void DataTransmitter::fetchFromMicAndSendOverNetwork() {
   
   std::string data_str; 
 
-  /* ProtocolData data_wrapped{}; */
-  /* const auto result = request.SerializeToArray(data_wrapped.serialized_data, SERIALIZED_SIZE); */
-  /* assert(result); */
   if (!request.SerializeToString(&data_str)) {
     throw std::runtime_error("serialization error");
   }
@@ -144,15 +139,6 @@ void DataTransmitter::receiveFromNetworkAndPutInSharedMemory() {
   if (!response.ParseFromString(data_str)) {
     throw std::runtime_error("deserialization error");
   } 
-
-  /* * */
-  /* * ProtocolData data_wrapped{}; *1/ */
-  /* conn->read((char*)&data_wrapped, sizeof(data_wrapped)); */
-
-  /* Response response{}; */
-  /* const auto result = response.ParseFromArray(data_wrapped.serialized_data, SERIALIZED_SIZE); */
-  /* if (!result) */
-  /*     return; */
 
   if(response.Content_case() == Response::ContentCase::kData) {
     const auto& data = response.data();

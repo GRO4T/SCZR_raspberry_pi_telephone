@@ -76,7 +76,7 @@ private:
     } state;
     std::size_t already_sent;
     uint16_t payload_size;
-    std::array<char, 0x4000> buffer; // Conncetion bedzie tworzone przez make_unique, więc ten bufor będzie na stercie.
+    std::array<char, 0x4000> buffer;
 
     bool recv(std::string& , std::size_t );
     bool send(const std::string& , std::size_t& );
@@ -88,7 +88,6 @@ public:
     bool recvPayload(std::string& );
     bool sendPayload(std::string& );
 
-    // zakładamy że ta klasa nie umie jeszcze w protobuf więc trzeba podać file_size po deserializacji payloadu.
     void sendFile(std::fstream& file, std::size_t file_size);
     void recvFile(std::fstream& file, std::size_t file_size);
 
