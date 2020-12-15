@@ -5,6 +5,7 @@
 #include <sys/wait.h>
 #include <functional>
 #include <wiringPi.h>
+#include <cmath>
 #include <thread>
 #include <chrono>
 #include <optional>
@@ -166,7 +167,19 @@ void make_summary(std::size_t last) {
     if (delay > max_delay) max_delay = delay;
     printf("Packet %lu was delayed by %lld microseconds\n", (long unsigned int) i, delay);
   }
-  printf("%d packets was lost and mean delay was %lf microseconds\n", lost_packets, delay_sum / (last - lost_packets));
+  const auto avg = delay_sum / (last - lost_packets);
+  double squared_differences = 0.0;
+  for (std::size_t i=0; i < last; ++i) {
+    const auto send = send_at[i];
+    const auto received = received_at[i];
+    if (received == null_time_point) {
+      continue;
+    }
+    const auto delay = std::chrono::duration_cast<std::chrono::microseconds>(received - send).count();
+    squared_differences += (delay - avg) * (delay - avg); 
+  }
+  const auto standard_deviation = std::sqrt(squared_differences / (last - lost_packets - 1));
+  printf("%d packets was lost and mean delay was %lf microseconds, standard deviation: %lf\n", lost_packets, avg, standard_deviation);
   printf("Maximum delay: %lf\n", max_delay);
 }
 
