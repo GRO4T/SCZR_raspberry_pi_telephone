@@ -47,17 +47,14 @@ using namespace std::chrono;
 #define ENABLE_PIN 8
 #define NEW_PACKET_PIN 9
 constexpr std::size_t VectorSize = 0x1'000'000;
-constexpr std::size_t NumOfPacketsToCount = 0x1000;
+constexpr std::size_t NumOfPacketsToCount = 0x0100;
 
 std::vector<std::chrono::time_point<std::chrono::high_resolution_clock>> send_at(VectorSize);
 std::vector<std::chrono::time_point<std::chrono::high_resolution_clock>> received_at(VectorSize);
 
+std::size_t i = 0;
 
-struct RunFlags {
-	bool isol_cpus = false;
-	bool be_nice = false;
-	bool be_rude = false;
-} run_flags;
+bool isol_cpus = false;
 
 void runOnCpu(int cpu_num);
 void setup();
@@ -116,11 +113,9 @@ int forkAndExecute(std::function<void()> func) {
 int main(int argc, char* argv[]) {
   if (argc == 2) {
   	std::string run_arg = argv[1];
-	if (run_arg == "--isol-cpus") run_flags.isol_cpus = true;
-	else if (run_arg == "--be-nice") run_flags.be_nice = true;
-	else if (run_arg == "--be-rude") run_flags.be_rude = true;
+	if (run_arg == "--isol-cpus") isol_cpus = true;
 	else {
-	  std::cout << "Uzycie: ./benchmark --isol-cpus|--be-nice|--be-rude" << std::endl;
+	  std::cout << "Uzycie: ./benchmark --isol-cpus" << std::endl;
 	  return 0;
 	}
   }
@@ -155,29 +150,59 @@ void setup() {
 
 void make_summary(std::size_t last) {
   std::chrono::time_point<std::chrono::high_resolution_clock> null_time_point;
-  std::size_t lost_packets = 0;
+  uint32_t lost_packets = 0;
   double delay_sum = 0.0;
+  double max_delay = 0.0;
+  
+
   for (std::size_t i=0; i < last; ++i) {
     const auto send = send_at[i];
     const auto received = received_at[i];
     if (received == null_time_point) {
-      printf("Packet %lu was lost\n", i);
+      printf("Packet %lu was lost\n", (long unsigned int)i);
       lost_packets++;
       continue;
     }
     const auto delay = std::chrono::duration_cast<std::chrono::microseconds>(received - send).count();
     delay_sum += delay;
-    printf("Packet %lu was delayd by %ld microseconds\n", i, delay);
+	if (delay > max_delay) max_delay = delay;
+    printf("Packet %lu was delayed by %lld microseconds\n", (long unsigned int)i, delay);
   }
-  printf("%lu packets was lost and mean delay was %lf microseconds\n", lost_packets, delay_sum / (last - lost_packets));
+  printf("%d packets was lost and mean delay was %lf microseconds\n", lost_packets, delay_sum / (last - lost_packets));
+  printf("Maximum delay: %lf\n", max_delay);
+}
+
+void setReceivedAt(Audio<BUFFER_SIZE>::PacketDeque& ptr) {
+	while (i < NumOfPacketsToCount && !Halt) {
+			auto p = try_recv_packet(ptr);
+			if (p) {
+			  received_at[*p] = std::chrono::high_resolution_clock::now();
+			  printf("received packet with id = %d\n", *p + 1);
+			}
+	}
+}
+
+void setSendAt() {
+  	DFlipFlop d(NEW_PACKET_PIN);
+	cpu_set_t set;
+	CPU_ZERO(&set);
+	CPU_SET(2, &set);
+	if (pthread_setaffinity_np(pthread_self(), sizeof(set), &set) < 0) {
+		throw std::runtime_error("Klops");
+	}
+	while (i < NumOfPacketsToCount && !Halt) {
+		if (d.was_edge()) {
+		  send_at[i++] = std::chrono::high_resolution_clock::now();
+		  printf("Packet %lu was send\n", (long unsigned int)i);
+		}
+	}
 }
 
 void playAudio() {
-  if (run_flags.isol_cpus == true) runOnCpu(2);		
+  if (isol_cpus == true) runOnCpu(2);		
 
   signal(SIGINT, &signal_handler);
   Audio<BUFFER_SIZE>::PacketDeque ptr(SHM_AUDIO_TEST_NAME);
-  DFlipFlop d(NEW_PACKET_PIN);
   
   std::this_thread::sleep_for(1s);
   
@@ -194,27 +219,15 @@ void playAudio() {
   puts("Queue flushed");
 
   digitalWrite(ENABLE_PIN, HIGH);
-  std::size_t i = 0;
 
-  while (i < NumOfPacketsToCount && !Halt) {
-    auto p = try_recv_packet(ptr);
-    if (p && *p >= i) {
-      throw std::runtime_error("WTF??? BACK TO THE FUTURE?");
-    }
-    if (p) {
-      received_at[*p] = std::chrono::high_resolution_clock::now();
-      printf("received packet with id = %d\n", *p);
-    }
-    if (d.was_edge()) {
-      send_at[i++] = std::chrono::high_resolution_clock::now();
-      printf("Packet %lu was send\n", i);
-    }
-  }
+	std::thread t1([&]() { setReceivedAt(ptr); });
+	setSendAt();
+	t1.detach();
   make_summary(i);
 }
 
 void fetchDataFromMic() {
-  if (run_flags.isol_cpus == true) runOnCpu(3);		
+  if (isol_cpus == true) runOnCpu(3);		
 
   Audio<BUFFER_SIZE>::PacketDeque ptr(SHM_AUDIO_TEST_NAME);
   Audio<BUFFER_SIZE>::AudioPacket audio_packet;
