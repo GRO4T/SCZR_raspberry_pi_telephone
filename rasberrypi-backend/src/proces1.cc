@@ -25,7 +25,7 @@ int main(int argc, char*argv[]) {
     std::cout << "Uzycie: ./proces1 -host|-client ip port [-s|-r]" << std::endl;
     std::cout << "\t-host : uruchom proces jako serwer" << std::endl;
     std::cout << "\t-client : uruchom proces jako klient" << std::endl;
-    std::cout << "\tip : " << std::endl;
+    std::cout << "\tip : " << std::endl; 
     std::cout << "\t\tdla serwera - adres na ktorym nasluchuje prob polaczenia TCP" << std::endl;
     std::cout << "\t\tdla klienta - adres z ktorym chcemy nawiazac polaczenie TCP" << std::endl;
     std::cout << "\tport : numer portu" << std::endl;

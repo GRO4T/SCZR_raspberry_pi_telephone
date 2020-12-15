@@ -52,14 +52,15 @@ constexpr std::size_t NumOfPacketsToCount = 0x1000;
 std::vector<std::chrono::time_point<std::chrono::high_resolution_clock>> send_at(VectorSize);
 std::vector<std::chrono::time_point<std::chrono::high_resolution_clock>> received_at(VectorSize);
 
-void setup() {
-    wiringPiSetup();
-    
-    pinMode(ENABLE_PIN, OUTPUT);
-    pinMode(NEW_PACKET_PIN, INPUT);
 
-    digitalWrite(ENABLE_PIN, LOW);
-}
+struct RunFlags {
+	bool isol_cpus = false;
+	bool be_nice = false;
+	bool be_rude = false;
+} run_flags;
+
+void runOnCpu(int cpu_num);
+void setup();
 
 std::optional<uint32_t> try_recv_packet(auto & ptr) {
     {
@@ -97,6 +98,61 @@ void signal_handler(int sig) {
     }
 }
 
+void make_summary(std::size_t last);
+void playAudio();
+void fetchDataFromMic();
+
+int forkAndExecute(std::function<void()> func) {
+  pid_t child_pid = fork();
+  if (child_pid < 0) {
+    throw std::runtime_error("Fork failed.");
+  }
+  else if (child_pid == 0) {
+    func();
+  }
+  return child_pid;
+}
+
+int main(int argc, char* argv[]) {
+  if (argc == 2) {
+  	std::string run_arg = argv[1];
+	if (run_arg == "--isol-cpus") run_flags.isol_cpus = true;
+	else if (run_arg == "--be-nice") run_flags.be_nice = true;
+	else if (run_arg == "--be-rude") run_flags.be_rude = true;
+	else {
+	  std::cout << "Uzycie: ./benchmark --isol-cpus|--be-nice|--be-rude" << std::endl;
+	  return 0;
+	}
+  }
+
+  setup();
+  int pid = forkAndExecute(playAudio);
+  if (pid > 0)
+    pid = forkAndExecute(fetchDataFromMic);
+  if (pid > 0) {
+    wait(NULL);
+  }
+  return 0;
+}
+
+void runOnCpu(int cpu_num) {
+	cpu_set_t set;
+	CPU_ZERO(&set);
+	CPU_SET(cpu_num, &set);
+	if (sched_setaffinity(getpid(), sizeof(set), &set) == -1) {
+		throw std::runtime_error("Error sched_setaffinity()!");
+	}
+}
+
+void setup() {
+    wiringPiSetup();
+    
+    pinMode(ENABLE_PIN, OUTPUT);
+    pinMode(NEW_PACKET_PIN, INPUT);
+
+    digitalWrite(ENABLE_PIN, LOW);
+}
+
 void make_summary(std::size_t last) {
   std::chrono::time_point<std::chrono::high_resolution_clock> null_time_point;
   std::size_t lost_packets = 0;
@@ -117,6 +173,8 @@ void make_summary(std::size_t last) {
 }
 
 void playAudio() {
+  if (run_flags.isol_cpus == true) runOnCpu(2);		
+
   signal(SIGINT, &signal_handler);
   Audio<BUFFER_SIZE>::PacketDeque ptr(SHM_AUDIO_TEST_NAME);
   DFlipFlop d(NEW_PACKET_PIN);
@@ -156,6 +214,8 @@ void playAudio() {
 }
 
 void fetchDataFromMic() {
+  if (run_flags.isol_cpus == true) runOnCpu(3);		
+
   Audio<BUFFER_SIZE>::PacketDeque ptr(SHM_AUDIO_TEST_NAME);
   Audio<BUFFER_SIZE>::AudioPacket audio_packet;
   transmission::MicPacket packet_from_mic;
@@ -174,26 +234,4 @@ void fetchDataFromMic() {
     auto resource = ptr->lock();
     *resource->push_front() = audio_packet;
   }
-}
-
-int forkAndExecute(std::function<void()> func) {
-  pid_t child_pid = fork();
-  if (child_pid < 0) {
-    throw std::runtime_error("Fork failed.");
-  }
-  else if (child_pid == 0) {
-    func();
-  }
-  return child_pid;
-}
-
-int main() {
-  setup();
-  int pid = forkAndExecute(playAudio);
-  if (pid > 0)
-    pid = forkAndExecute(fetchDataFromMic);
-  if (pid > 0) {
-    wait(NULL);
-  }
-  return 0;
 }
