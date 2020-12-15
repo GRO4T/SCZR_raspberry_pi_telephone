@@ -6,7 +6,7 @@ int main() {
   Audio<NUM_FRAMES>::PacketDeque ptr(SHM_AUDIO_TEST_NAME);
 
   audio.play(ptr);
-  while(1) {}
+  while (1) {}
 
   return 0;
 }

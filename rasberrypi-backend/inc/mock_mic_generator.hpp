@@ -6,17 +6,17 @@
 
 class MockMicGenerator {
 public:
-  MockMicGenerator(const char* path = "/tmp/mock_mic");
-  ~MockMicGenerator();
+    MockMicGenerator(const char *path = "/tmp/mock_mic");
+    ~MockMicGenerator();
 
-  bool is_saturated() const;
+    bool is_saturated() const;
 
-  void gen();
-  int fd() const;
+    void gen();
+    int fd() const;
 private:
-  float time_;
-  int fd_;
-  std::string path_;
+    float time_;
+    int fd_;
+    std::string path_;
 };
 
 #endif

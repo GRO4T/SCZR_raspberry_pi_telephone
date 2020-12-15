@@ -9,14 +9,14 @@ std::unique_ptr<MockMicGenerator> generator = nullptr;
 std::atomic<bool> generate;
 
 void signal_handler(int sig) {
-  if(sig == SIGINT) {
+  if (sig == SIGINT) {
     generate.store(false);
   }
 }
 
 void generator_thread() {
-  while(generate.load()) {
-    if(!generator->is_saturated())
+  while (generate.load()) {
+    if (!generator->is_saturated())
       generator->gen();
   }
 }

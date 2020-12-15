@@ -5,8 +5,8 @@ bool FDSelector::add(const MicType &mic) {
   return inserted;
 }
 
-bool FDSelector::add(const TCPServer& server) {
-  auto [ _, inserted ] = rd_fds.insert(server.fd());
+bool FDSelector::add(const TCPServer &server) {
+  auto[_, inserted] = rd_fds.insert(server.fd());
   return inserted;
 }
 
@@ -15,8 +15,8 @@ bool FDSelector::addWrite(const UDPSocket &socket) {
   return inserted;
 }
 
-bool FDSelector::addWrite(const TCPConnection& conn) {
-  auto [ _, inserted ] = wr_fds.insert(conn.fd());
+bool FDSelector::addWrite(const TCPConnection &conn) {
+  auto[_, inserted] = wr_fds.insert(conn.fd());
   return inserted;
 }
 
@@ -25,8 +25,8 @@ bool FDSelector::addRead(const UDPSocket &socket) {
   return inserted;
 }
 
-bool FDSelector::addRead(const TCPConnection& conn) {
-  auto [ _, inserted ] = rd_fds.insert(conn.fd());
+bool FDSelector::addRead(const TCPConnection &conn) {
+  auto[_, inserted] = rd_fds.insert(conn.fd());
   return inserted;
 }
 
@@ -34,7 +34,7 @@ void FDSelector::remove(const MicType &mic) {
   rd_fds.erase(mic.fd());
 }
 
-void FDSelector::remove(const TCPServer& server) {
+void FDSelector::remove(const TCPServer &server) {
   rd_fds.erase(server.fd());
 }
 
@@ -42,7 +42,7 @@ void FDSelector::removeWrite(const UDPSocket &socket) {
   wr_fds.erase(socket.fd());
 }
 
-void FDSelector::removeWrite(const TCPConnection& conn) {
+void FDSelector::removeWrite(const TCPConnection &conn) {
   wr_fds.erase(conn.fd());
 }
 
@@ -50,7 +50,7 @@ void FDSelector::removeRead(const UDPSocket &socket) {
   rd_fds.erase(socket.fd());
 }
 
-void FDSelector::removeRead(const TCPConnection& conn) {
+void FDSelector::removeRead(const TCPConnection &conn) {
   rd_fds.erase(conn.fd());
 }
 
@@ -58,7 +58,7 @@ bool FDSelector::ready(const MicType &mic) {
   return FD_ISSET(mic.fd(), &rd_set);
 }
 
-bool FDSelector::ready(const TCPServer& server) const {
+bool FDSelector::ready(const TCPServer &server) const {
   return FD_ISSET(server.fd(), &rd_set);
 }
 
@@ -66,7 +66,7 @@ bool FDSelector::readyWrite(const UDPSocket &socket) {
   return FD_ISSET(socket.fd(), &wr_set);
 }
 
-bool FDSelector::readyWrite(const TCPConnection& conn) const {
+bool FDSelector::readyWrite(const TCPConnection &conn) const {
   return FD_ISSET(conn.fd(), &wr_set);
 }
 
@@ -74,7 +74,7 @@ bool FDSelector::readyRead(const UDPSocket &socket) {
   return FD_ISSET(socket.fd(), &rd_set);
 }
 
-bool FDSelector::readyRead(const TCPConnection& conn) const {
+bool FDSelector::readyRead(const TCPConnection &conn) const {
   return FD_ISSET(conn.fd(), &rd_set);
 }
 

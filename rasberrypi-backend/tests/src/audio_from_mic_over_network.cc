@@ -10,7 +10,7 @@ void playAudio() {
   Audio<BUFFER_SIZE>::PacketDeque ptr(SHM_AUDIO_TEST_NAME);
 
   audio.play(ptr);
-  while(1) {}
+  while (1) {}
 }
 
 void transmitDataFromMicOverNetwork() {
@@ -39,8 +39,7 @@ int forkAndExecute(std::function<void()> func) {
   pid_t child_pid = fork();
   if (child_pid < 0) {
     throw std::runtime_error("Fork failed.");
-  }
-  else if (child_pid == 0) {
+  } else if (child_pid == 0) {
     func();
   }
   return child_pid;
