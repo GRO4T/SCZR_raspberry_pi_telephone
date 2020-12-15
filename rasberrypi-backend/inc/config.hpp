@@ -20,5 +20,4 @@ const char SHM_AUDIO_TEST_NAME[] = "/test_audio";
 const unsigned int NUM_FRAMES = 5012;
 const unsigned int SAMPLING_RATE = 20000;
 
-
 #endif

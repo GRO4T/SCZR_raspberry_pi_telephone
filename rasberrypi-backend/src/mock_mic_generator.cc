@@ -11,13 +11,13 @@
 #include <cmath>
 #include <iostream>
 
-MockMicGenerator::MockMicGenerator(const char* path) {
+MockMicGenerator::MockMicGenerator(const char *path) {
   time_ = 0.0f;
   if (mkfifo(path, 0666) < 0) {
     throw std::runtime_error("Could not create FIFO!");
   }
   fd_ = open(path, O_RDWR);
-  if(fd_ < 0)
+  if (fd_ < 0)
     throw BackendException();
   path_ = path;
 }
@@ -39,10 +39,10 @@ bool MockMicGenerator::is_saturated() const {
 void MockMicGenerator::gen() {
   int16_t buf[BUFFER_SIZE];
   const uint32_t mock_crc = 0xDEADBEEF;
-  const float dt = 1.0/44100.0;
+  const float dt = 1.0 / 44100.0;
 
-  for(unsigned int i = 0; i < BUFFER_SIZE; ++i) {
-    buf[i] = std::min(constant_compound + constant_compound * 0.2 * std::sin(420*time_*2.0*M_PI), 4096.0);
+  for (unsigned int i = 0; i < BUFFER_SIZE; ++i) {
+    buf[i] = std::min(constant_compound + constant_compound * 0.2 * std::sin(420 * time_ * 2.0 * M_PI), 4096.0);
     time_ += dt;
   }
 

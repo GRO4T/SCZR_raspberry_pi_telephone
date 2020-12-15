@@ -6,7 +6,7 @@
 #include "net.hpp"
 #include "fd_selector.hpp"
 
-void runClient(const IPv4& ip, int port, std::string msg) {
+void runClient(const IPv4 &ip, int port, std::string msg) {
   auto client = connect(ip, port);
   FDSelector fd_selector;
   fd_selector.addRead(*client);
@@ -23,7 +23,7 @@ void runClient(const IPv4& ip, int port, std::string msg) {
   }
 }
 
-void runServer(const IPv4& ip, int port, std::string msg) {
+void runServer(const IPv4 &ip, int port, std::string msg) {
   TCPServer srv;
   srv.bind(ip, port);
   srv.listen();
@@ -42,7 +42,10 @@ void runServer(const IPv4& ip, int port, std::string msg) {
   }
 }
 
-int forkAndExecute(std::function<void(const IPv4&, int, std::string)> func, const IPv4& ip, int port, std::string msg) {
+int forkAndExecute(std::function<void(const IPv4 &, int, std::string)> func,
+                   const IPv4 &ip,
+                   int port,
+                   std::string msg) {
   pid_t child_pid = fork();
   if (child_pid < 0) {
     throw std::runtime_error("Fork failed.");
@@ -53,7 +56,7 @@ int forkAndExecute(std::function<void(const IPv4&, int, std::string)> func, cons
 }
 
 int main() {
-  const IPv4& ip = IPv4("127.0.0.1");
+  const IPv4 &ip = IPv4("127.0.0.1");
   int port = 8081;
   int pid = forkAndExecute(runServer, ip, port, "Hello it's a server (PING)");
   if (pid > 0)

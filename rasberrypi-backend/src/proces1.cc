@@ -2,7 +2,7 @@
 #include "transmission.hpp"
 #include "net.hpp"
 
-void runHost(IPv4& ip, int port, transmission::DataTransmitter::Mode transmissionMode) {
+void runHost(IPv4 &ip, int port, transmission::DataTransmitter::Mode transmissionMode) {
   TCPServer srv;
   srv.bind(ip, port);
   srv.reuseaddr();
@@ -13,19 +13,19 @@ void runHost(IPv4& ip, int port, transmission::DataTransmitter::Mode transmissio
   data_transmitter.transmit();
 }
 
-void runClient(IPv4& ip, int port, transmission::DataTransmitter::Mode transmissionMode) {
+void runClient(IPv4 &ip, int port, transmission::DataTransmitter::Mode transmissionMode) {
   auto client = connect(ip, port);
   transmission::DataTransmitter data_transmitter(SHM_AUDIO_TEST_NAME, std::move(client));
   data_transmitter.setMode(transmissionMode);
   data_transmitter.transmit();
 }
 
-int main(int argc, char*argv[]) {
+int main(int argc, char *argv[]) {
   if (argc < 2) {
     std::cout << "Uzycie: ./proces1 -host|-client ip port [-s|-r]" << std::endl;
     std::cout << "\t-host : uruchom proces jako serwer" << std::endl;
     std::cout << "\t-client : uruchom proces jako klient" << std::endl;
-    std::cout << "\tip : " << std::endl; 
+    std::cout << "\tip : " << std::endl;
     std::cout << "\t\tdla serwera - adres na ktorym nasluchuje prob polaczenia TCP" << std::endl;
     std::cout << "\t\tdla klienta - adres z ktorym chcemy nawiazac polaczenie TCP" << std::endl;
     std::cout << "\tport : numer portu" << std::endl;
@@ -45,16 +45,14 @@ int main(int argc, char*argv[]) {
     std::string arg = argv[4];
     if (arg == "-s") {
       transmissionMode = transmission::DataTransmitter::Mode::SEND_ONLY;
-    }
-    else if (arg == "-r") {
+    } else if (arg == "-r") {
       transmissionMode = transmission::DataTransmitter::Mode::RECEIVE_ONLY;
     }
   }
 
   if (conn_type == "-host") {
     runHost(ip, port, transmissionMode);
-  }
-  else if (conn_type == "-client") {
+  } else if (conn_type == "-client") {
     runClient(ip, port, transmissionMode);
   }
 }

@@ -29,15 +29,15 @@ IPv4::operator std::string() const {
   return std::string(str);
 }
 
-IPv6::IPv6(const std::string& str) : IPv6(str.c_str()) {  }
+IPv6::IPv6(const std::string &str) : IPv6(str.c_str()) {}
 
-IPv6::IPv6(const char* ptr) {
+IPv6::IPv6(const char *ptr) {
   if (inet_pton(AF_INET6, ptr, &addr) != 1) {
     throw NetworkException();
   }
 }
 
-const in6_addr& IPv6::address() const noexcept {
+const in6_addr &IPv6::address() const noexcept {
   return addr;
 }
 
@@ -80,7 +80,8 @@ std::string UDPSocket::getIncomingAddr() const {
 }
 
 int UDPSocket::write(const char *buf, std::size_t bufsize) {
-  int bytes_sent = sendto(sockfd, buf, bufsize, MSG_CONFIRM, (const struct sockaddr *) &outgoing_addr, sizeof(outgoing_addr));
+  int bytes_sent =
+      sendto(sockfd, buf, bufsize, MSG_CONFIRM, (const struct sockaddr *) &outgoing_addr, sizeof(outgoing_addr));
   if (bytes_sent == -1) {
     throw NetworkException("Error sending datagram");
   }
@@ -90,7 +91,8 @@ int UDPSocket::write(const char *buf, std::size_t bufsize) {
 int UDPSocket::read(char *buf, std::size_t bufsize) {
   int len = sizeof(incoming_addr);
   int bytes_received;
-  bytes_received = recvfrom(sockfd, buf, bufsize, MSG_WAITALL, (struct sockaddr *) &incoming_addr, (socklen_t *) &len);
+  bytes_received =
+      recvfrom(sockfd, buf, bufsize, MSG_WAITALL, (struct sockaddr *) &incoming_addr, (socklen_t * ) & len);
   if (bytes_received == -1) {
     throw NetworkException("Error receiving datagram");
   }
@@ -101,7 +103,7 @@ int UDPSocket::fd() const {
   return sockfd;
 }
 
-TCPConnection::TCPConnection(int sockfd, const struct sockaddr_in6& addr) : sockfd(sockfd), addr(addr) {}
+TCPConnection::TCPConnection(int sockfd, const struct sockaddr_in6 &addr) : sockfd(sockfd), addr(addr) {}
 TCPConnection::~TCPConnection() {
   close(sockfd);
 }
@@ -109,7 +111,7 @@ TCPConnection::~TCPConnection() {
 std::string TCPConnection::address() const {
   char buffer[INET6_ADDRSTRLEN];
   if (addr.sin6_family == AF_INET) {
-    struct sockaddr_in* addr_v4 = (struct sockaddr_in*)(&addr);
+    struct sockaddr_in *addr_v4 = (struct sockaddr_in *) (&addr);
     if (inet_ntop(addr_v4->sin_family, &addr_v4->sin_addr, buffer, sizeof(buffer)) < 0) {
       throw NetworkException();
     }
@@ -126,7 +128,7 @@ short unsigned int TCPConnection::port() const {
   return ntohs(addr.sin6_port);
 }
 
-std::size_t TCPConnection::read(char* buffer, std::size_t buffer_size) const {
+std::size_t TCPConnection::read(char *buffer, std::size_t buffer_size) const {
   ssize_t result = ::recv(sockfd, buffer, buffer_size, 0);
   if (result < 0) {
     throw NetworkException();
@@ -137,7 +139,7 @@ std::size_t TCPConnection::read(char* buffer, std::size_t buffer_size) const {
   }
 }
 
-std::size_t TCPConnection::write(const char* buffer, std::size_t buffer_size) const {
+std::size_t TCPConnection::write(const char *buffer, std::size_t buffer_size) const {
   ssize_t result = ::send(sockfd, buffer, buffer_size, 0);
   if (result < 0) {
     throw NetworkException();
@@ -160,15 +162,15 @@ int TCPConnection::fd() const noexcept {
   return sockfd;
 }
 
-Connection::Connection(int sockfd, const struct sockaddr_in6& addr) : TCPConnection(sockfd, addr) {
+Connection::Connection(int sockfd, const struct sockaddr_in6 &addr) : TCPConnection(sockfd, addr) {
   state = Connection::PacketState::Start;
   already_sent = 0;
   buffer.fill(0);
 }
 
-bool Connection::recvPayload(std::string& payload) {
+bool Connection::recvPayload(std::string &payload) {
   if (state == Connection::PacketState::Start) {
-    std::size_t received = read(reinterpret_cast<char*>(&payload_size), sizeof(payload_size));
+    std::size_t received = read(reinterpret_cast<char *>(&payload_size), sizeof(payload_size));
     if (received != sizeof(payload_size)) {
       return false;
     }
@@ -183,10 +185,10 @@ bool Connection::recvPayload(std::string& payload) {
   return false;
 }
 
-bool Connection::sendPayload(std::string& payload) {
+bool Connection::sendPayload(std::string &payload) {
   if (state == Connection::PacketState::Start) {
     payload_size = payload.length();
-    std::size_t sent = write(reinterpret_cast<char*>(&payload_size), sizeof(payload_size));
+    std::size_t sent = write(reinterpret_cast<char *>(&payload_size), sizeof(payload_size));
     if (sent != sizeof(payload_size)) {
       return false;
     }
@@ -202,7 +204,7 @@ bool Connection::sendPayload(std::string& payload) {
   return false;
 }
 
-bool Connection::sendfileChunk(std::fstream& file, std::size_t file_size) {
+bool Connection::sendfileChunk(std::fstream &file, std::size_t file_size) {
   auto position = file.tellg();
   file.read(buffer.data(), std::min(file_size, buffer.size()));
   auto size = file.gcount();
@@ -212,7 +214,7 @@ bool Connection::sendfileChunk(std::fstream& file, std::size_t file_size) {
   return current_position == file_size;
 }
 
-bool Connection::recvfileChunk(std::fstream& file, std::size_t file_size) {
+bool Connection::recvfileChunk(std::fstream &file, std::size_t file_size) {
   auto position = file.tellp();
   auto received = read(buffer.data(),
                        std::min(buffer.size(), static_cast<std::size_t>(file_size) - static_cast<std::size_t>(position))
@@ -221,15 +223,15 @@ bool Connection::recvfileChunk(std::fstream& file, std::size_t file_size) {
   return file.tellp() == file_size;
 }
 
-void Connection::sendFile(std::fstream& file, std::size_t file_size) {
+void Connection::sendFile(std::fstream &file, std::size_t file_size) {
   while (!sendfileChunk(file, file_size));
 }
 
-void Connection::recvFile(std::fstream& file, std::size_t file_size) {
+void Connection::recvFile(std::fstream &file, std::size_t file_size) {
   while (!recvfileChunk(file, file_size));
 }
 
-bool Connection::recv(std::string& data, std::size_t end_size) {
+bool Connection::recv(std::string &data, std::size_t end_size) {
   buffer.fill(0);
   std::size_t to_receive = end_size - data.length();
   std::size_t received = read(buffer.data(), std::min(to_receive, buffer.size()));
@@ -237,15 +239,14 @@ bool Connection::recv(std::string& data, std::size_t end_size) {
   return data.length() == end_size;
 }
 
-bool Connection::send(const std::string& data, std::size_t& sent) {
+bool Connection::send(const std::string &data, std::size_t &sent) {
   std::size_t to_send = data.length() - sent;
   std::size_t written = write(&data[sent], to_send);
   sent = written;
   return data.length() == sent;
 }
 
-
-std::unique_ptr<Connection> connect(const IPv4& ip, unsigned short port) {
+std::unique_ptr<Connection> connect(const IPv4 &ip, unsigned short port) {
   int sockfd = socket(AF_INET, SOCK_STREAM, 0);
   if (sockfd < 0) {
     throw NetworkException();
@@ -255,20 +256,20 @@ std::unique_ptr<Connection> connect(const IPv4& ip, unsigned short port) {
   addr.sin_family = AF_INET;
   addr.sin_addr = ip.address();
   addr.sin_port = htons(port);
-  if (::connect(sockfd, (const sockaddr*)&addr, sizeof(addr)) != 0) {
+  if (::connect(sockfd, (const sockaddr *) &addr, sizeof(addr)) != 0) {
     ::close(sockfd);
     throw NetworkException();
   }
 
   struct sockaddr_in6 remote;
   socklen_t len = sizeof(remote);
-  if (::getpeername(sockfd, (struct sockaddr*)&remote, &len) < 0) {
+  if (::getpeername(sockfd, (struct sockaddr *) &remote, &len) < 0) {
     throw NetworkException();
   }
   return std::make_unique<Connection>(sockfd, remote);
 }
 
-std::unique_ptr<Connection> connect(const IPv6& ip, unsigned short port) {
+std::unique_ptr<Connection> connect(const IPv6 &ip, unsigned short port) {
   int sockfd = socket(AF_INET6, SOCK_STREAM, 0);
   if (sockfd < 0) {
     throw NetworkException();
@@ -278,14 +279,14 @@ std::unique_ptr<Connection> connect(const IPv6& ip, unsigned short port) {
   addr.sin6_family = AF_INET6;
   addr.sin6_addr = ip.address();
   addr.sin6_port = htons(port);
-  if (::connect(sockfd, (const sockaddr*)&addr, sizeof(addr)) < 0) {
+  if (::connect(sockfd, (const sockaddr *) &addr, sizeof(addr)) < 0) {
     ::close(sockfd);
     throw NetworkException();
   }
   return std::make_unique<Connection>(sockfd, addr);
 }
 
-std::unique_ptr<Connection> connect(const std::string& host, const std::string& port) {
+std::unique_ptr<Connection> connect(const std::string &host, const std::string &port) {
   struct addrinfo hints;
   memset(&hints, 0, sizeof(hints));
   hints.ai_family = AF_UNSPEC;
@@ -296,15 +297,15 @@ std::unique_ptr<Connection> connect(const std::string& host, const std::string& 
   hints.ai_addr = nullptr;
   hints.ai_next = nullptr;
 
-  struct addrinfo* result;
+  struct addrinfo *result;
   int status = getaddrinfo(host.c_str(), port.c_str(), &hints, &result);
   if (status != 0) {
     throw NetworkException(gai_strerror(status));
   }
 
   int sockfd = -1;
-  struct addrinfo* ptr = nullptr;
-  for (ptr=result; ptr; ptr = ptr->ai_next) {
+  struct addrinfo *ptr = nullptr;
+  for (ptr = result; ptr; ptr = ptr->ai_next) {
     sockfd = socket(ptr->ai_family, ptr->ai_socktype, ptr->ai_protocol);
 
     if (sockfd < 0) {
@@ -325,19 +326,19 @@ std::unique_ptr<Connection> connect(const std::string& host, const std::string& 
 
   struct sockaddr_in6 remote;
   socklen_t len = sizeof(remote);
-  if (::getpeername(sockfd, (struct sockaddr*)&remote, &len) < 0) {
+  if (::getpeername(sockfd, (struct sockaddr *) &remote, &len) < 0) {
     throw NetworkException();
   }
   return std::make_unique<Connection>(sockfd, remote);
 }
 
-std::unique_ptr<Connection> connect(const std::string& url) {
+std::unique_ptr<Connection> connect(const std::string &url) {
   if (url.length() == 0) {
     throw NetworkException("Invalid address");
   }
   if (url[0] == '[') { // parsing ipv6
     auto host_end = url.find(']');
-    if (host_end == std::string::npos || url.at(host_end+1) != ':') {
+    if (host_end == std::string::npos || url.at(host_end + 1) != ':') {
       throw NetworkException("Invalid address");
     }
     auto host = url.substr(1, host_end - 1);
@@ -374,7 +375,7 @@ void TCPServer::reuseaddr(bool reuse) {
   }
 }
 
-void TCPServer::bind(const IPv4& ip, unsigned short port) {
+void TCPServer::bind(const IPv4 &ip, unsigned short port) {
   if (sockfd == -1) {
     sockfd = ::socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd < 0) {
@@ -387,12 +388,12 @@ void TCPServer::bind(const IPv4& ip, unsigned short port) {
   addr.sin_family = AF_INET;
   addr.sin_addr = ip.address();
   addr.sin_port = htons(port);
-  if (::bind(sockfd, (const sockaddr*)&addr, sizeof(addr)) < 0) {
+  if (::bind(sockfd, (const sockaddr *) &addr, sizeof(addr)) < 0) {
     throw NetworkException();
   }
 }
 
-void TCPServer::bind(const IPv6& ip, unsigned short port) {
+void TCPServer::bind(const IPv6 &ip, unsigned short port) {
   if (sockfd == -1) {
     sockfd = ::socket(AF_INET6, SOCK_STREAM, 0);
     if (sockfd < 0) {
@@ -405,7 +406,7 @@ void TCPServer::bind(const IPv6& ip, unsigned short port) {
   addr.sin6_family = AF_INET6;
   addr.sin6_addr = ip.address();
   addr.sin6_port = htons(port);
-  if (::bind(sockfd, (const sockaddr*)&addr, sizeof(addr)) < 0) {
+  if (::bind(sockfd, (const sockaddr *) &addr, sizeof(addr)) < 0) {
     throw NetworkException();
   }
 }
@@ -421,7 +422,7 @@ std::unique_ptr<Connection> TCPServer::accept() {
   memset(&addr, 0, sizeof(addr));
   socklen_t len = sizeof(addr);
 
-  int clientfd = ::accept(sockfd, reinterpret_cast<struct sockaddr*>(&addr), &len);
+  int clientfd = ::accept(sockfd, reinterpret_cast<struct sockaddr *>(&addr), &len);
   if (clientfd < 0) {
     throw NetworkException();
   }

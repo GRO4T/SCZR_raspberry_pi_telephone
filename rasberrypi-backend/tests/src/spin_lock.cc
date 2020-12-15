@@ -2,7 +2,7 @@
 #include "ipc.hpp"
 
 int main() {
-    spin_locked_resource<int> resource;
+  spin_locked_resource<int> resource;
 
-    *resource.lock() = 1;
+  *resource.lock() = 1;
 }

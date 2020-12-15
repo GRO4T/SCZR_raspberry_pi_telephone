@@ -65,9 +65,9 @@ void DataConverter::micPacketToAudioPacket(MicPacket &src, Audio<BUFFER_SIZE>::A
   dest.reserved = src.crc;
 }
 
-DataTransmitter::DataTransmitter(const char* shm_name, ConnPtr conn) :
-      conn(std::move(conn)),
-      shared_memory_deque(shm_name) {
+DataTransmitter::DataTransmitter(const char *shm_name, ConnPtr conn) :
+    conn(std::move(conn)),
+    shared_memory_deque(shm_name) {
   mode = Mode::SEND_RECEIVE;
   fd_selector.add(data_from_mic_retriever.getMic());
   fd_selector.addRead(*this->conn);
@@ -94,15 +94,12 @@ void DataTransmitter::setMode(Mode mode) {
   if (mode == Mode::SEND_RECEIVE) {
     if (this->mode == Mode::RECEIVE_ONLY) { // if previous mode was receive only add mic
       fd_selector.add(data_from_mic_retriever.getMic());
-    }
-    else { // add connection otherwise
+    } else { // add connection otherwise
       fd_selector.addRead(*conn);
     }
-  }
-  else if (mode == Mode::RECEIVE_ONLY) {
+  } else if (mode == Mode::RECEIVE_ONLY) {
     fd_selector.remove(data_from_mic_retriever.getMic());
-  }
-  else if (mode == Mode::SEND_ONLY) {
+  } else if (mode == Mode::SEND_ONLY) {
     fd_selector.removeRead(*conn);
   }
   this->mode = mode;
@@ -113,35 +110,35 @@ void DataTransmitter::fetchFromMicAndSendOverNetwork() {
   assert(packet_out.id == PAC1 || packet_out.id == PAC2);
 
   Request request{};
-  Data* data = new Data();
-  data->set_data((char*)&packet_out, PACKET_SIZE);
+  Data *data = new Data();
+  data->set_data((char *) &packet_out, PACKET_SIZE);
   request.set_allocated_data(data);
-  
-  std::string data_str; 
+
+  std::string data_str;
 
   if (!request.SerializeToString(&data_str)) {
     throw std::runtime_error("serialization error");
   }
 
-  while(!conn->sendPayload(data_str)); 
+  while (!conn->sendPayload(data_str));
 }
 
 void DataTransmitter::receiveFromNetworkAndPutInSharedMemory() {
   {
     auto resource = shared_memory_deque->lock();
-    if(resource->full())
+    if (resource->full())
       return;
   }
 
   std::string data_str;
-  while(!conn->recvPayload(data_str));
+  while (!conn->recvPayload(data_str));
   Response response;
   if (!response.ParseFromString(data_str)) {
     throw std::runtime_error("deserialization error");
-  } 
+  }
 
-  if(response.Content_case() == Response::ContentCase::kData) {
-    const auto& data = response.data();
+  if (response.Content_case() == Response::ContentCase::kData) {
+    const auto &data = response.data();
     assert(data.data().size() == PACKET_SIZE);
     memcpy(&packet_in, data.data().data(), PACKET_SIZE);
     assert(packet_in.id == PAC1 || packet_in.id == PAC2);

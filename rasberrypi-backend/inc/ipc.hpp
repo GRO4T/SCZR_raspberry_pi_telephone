@@ -18,30 +18,30 @@ template<typename T>
 class shared_mem_ptr {
 
     struct ref {
-        std::size_t use_count = 0;
-        T obj;
+      std::size_t use_count = 0;
+      T obj;
     };
 
-    ref* ptr;
+    ref *ptr;
     int memfd;
-    const char* path;
+    const char *path;
 public:
 
     template<typename ... Args>
-    shared_mem_ptr(const char* ptr, Args&&... args);
-    shared_mem_ptr(const shared_mem_ptr& other);
-    shared_mem_ptr(shared_mem_ptr&& other);
+    shared_mem_ptr(const char *ptr, Args &&... args);
+    shared_mem_ptr(const shared_mem_ptr &other);
+    shared_mem_ptr(shared_mem_ptr &&other);
 
     ~shared_mem_ptr();
 
-    T* get() noexcept { return &ptr->obj; }
-    const T* get() const noexcept { return &ptr->obj; }
-    T& operator*() noexcept { return ptr->obj; }
-    const T& operator*() const noexcept { return ptr->obj; }
-    T* operator->() noexcept { return &ptr->obj; }
-    const T* operator->() const noexcept { return &ptr->obj; }
-    shared_mem_ptr<T>& operator=(const shared_mem_ptr& other);
-    shared_mem_ptr<T>& operator=(shared_mem_ptr&& other);
+    T *get() noexcept { return &ptr->obj; }
+    const T *get() const noexcept { return &ptr->obj; }
+    T &operator*() noexcept { return ptr->obj; }
+    const T &operator*() const noexcept { return ptr->obj; }
+    T *operator->() noexcept { return &ptr->obj; }
+    const T *operator->() const noexcept { return &ptr->obj; }
+    shared_mem_ptr<T> &operator=(const shared_mem_ptr &other);
+    shared_mem_ptr<T> &operator=(shared_mem_ptr &&other);
 };
 
 template<typename T, std::size_t N>
@@ -50,7 +50,7 @@ class fast_deque {
 
     std::array<T, N> array;
     std::size_t front_index = invalid_index;
-    std::size_t back_index = 0; 
+    std::size_t back_index = 0;
 
     static std::size_t next(std::size_t n) noexcept;
     static std::size_t prev(std::size_t n) noexcept;
@@ -64,11 +64,11 @@ public:
     typename std::array<T, N>::iterator frontit() noexcept { return std::next(array.begin(), front_index); };
     typename std::array<T, N>::iterator backit() noexcept { return std::next(array.begin(), back_index); };
 
-    T& front() noexcept { return array[front_index]; }
-    const T& front() const noexcept { return array[front_index]; }
+    T &front() noexcept { return array[front_index]; }
+    const T &front() const noexcept { return array[front_index]; }
 
-    T& back() noexcept { return array[back_index]; }
-    const T& back() const noexcept { return array[back_index]; }
+    T &back() noexcept { return array[back_index]; }
+    const T &back() const noexcept { return array[back_index]; }
 
     bool valid(typename std::array<T, N>::iterator it) const noexcept { return it != array.end(); }
     bool empty() const noexcept;
@@ -80,28 +80,28 @@ public:
 
 template<typename T>
 class spin_locked_resource {
-    std::atomic_bool lock_; 
+    std::atomic_bool lock_;
     T obj;
-    
+
     class locked_resource {
-        spin_locked_resource& lock;
-        T& obj;
+        spin_locked_resource &lock;
+        T &obj;
     public:
-        locked_resource(spin_locked_resource& lock, T& obj);
-        locked_resource(const locked_resource& ) = delete;
-        locked_resource(locked_resource&& ) = delete;
+        locked_resource(spin_locked_resource &lock, T &obj);
+        locked_resource(const locked_resource &) = delete;
+        locked_resource(locked_resource &&) = delete;
         ~locked_resource();
 
-        T* operator->() noexcept { return &obj; }
-        T& operator*() noexcept { return obj; }
+        T *operator->() noexcept { return &obj; }
+        T &operator*() noexcept { return obj; }
 
-        auto operator=(const locked_resource& ) = delete;
+        auto operator=(const locked_resource &) = delete;
     };
 
     void unlock() noexcept;
 public:
     template<typename ... Args>
-    spin_locked_resource(Args&&... args);
+    spin_locked_resource(Args &&... args);
 
     locked_resource lock() noexcept;
 };
@@ -109,208 +109,207 @@ public:
 class Semaphore {
     int id;
 public:
-    Semaphore(const char* unique_path, int unique_id);
-    Semaphore(const char* unique_path, int unique_id, int value);
-    Semaphore(const Semaphore& other);
+    Semaphore(const char *unique_path, int unique_id);
+    Semaphore(const char *unique_path, int unique_id, int value);
+    Semaphore(const Semaphore &other);
     void P();
     void V();
 };
 
 template<typename T>
 template<typename ... Args>
-shared_mem_ptr<T>::shared_mem_ptr(const char* path, Args&&... args)
-    : path(path){
+shared_mem_ptr<T>::shared_mem_ptr(const char *path, Args &&... args)
+    : path(path) {
 
-    memfd = shm_open(path, O_RDWR, 0666);
-    if (memfd < 0) 
-        memfd = shm_open(path, O_RDWR | O_CREAT, 0666);
+  memfd = shm_open(path, O_RDWR, 0666);
+  if (memfd < 0)
+    memfd = shm_open(path, O_RDWR | O_CREAT, 0666);
 
-    if (memfd < 0)
-        throw BackendException();
+  if (memfd < 0)
+    throw BackendException();
 
-    struct stat st;
-    if (fstat(memfd, &st) < 0)
-        throw BackendException();
+  struct stat st;
+  if (fstat(memfd, &st) < 0)
+    throw BackendException();
 
-    if (st.st_size != sizeof(ref)) {
-        if (ftruncate(memfd, sizeof(ref)) < 0)
-            throw BackendException();
-    }
+  if (st.st_size != sizeof(ref)) {
+    if (ftruncate(memfd, sizeof(ref)) < 0)
+      throw BackendException();
+  }
 
-    ptr = (ref*)mmap(NULL, sizeof(ref), PROT_READ | PROT_WRITE, MAP_SHARED, memfd, 0); 
+  ptr = (ref *) mmap(NULL, sizeof(ref), PROT_READ | PROT_WRITE, MAP_SHARED, memfd, 0);
 
-    if (ptr->use_count == 0) {
-        ptr->use_count = 1;
-        new (&ptr->obj) T(std::forward<Args>(args)... );
-    } else {
-        ptr->use_count++;
-    }
+  if (ptr->use_count == 0) {
+    ptr->use_count = 1;
+    new(&ptr->obj) T(std::forward<Args>(args)...);
+  } else {
+    ptr->use_count++;
+  }
 }
 
 template<typename T>
 shared_mem_ptr<T>::~shared_mem_ptr() {
-    if (!ptr) 
-        return;
+  if (!ptr)
+    return;
 
-    ptr->use_count--;
-    ::close(memfd);
+  ptr->use_count--;
+  ::close(memfd);
 
-    if (ptr->use_count == 0) {
-        shm_unlink(path);
-    }
+  if (ptr->use_count == 0) {
+    shm_unlink(path);
+  }
 }
 
 template<typename T>
-shared_mem_ptr<T>::shared_mem_ptr(const shared_mem_ptr<T>& other) {
+shared_mem_ptr<T>::shared_mem_ptr(const shared_mem_ptr<T> &other) {
+  this->memfd = other.memfd;
+  this->ptr = other.ptr;
+  this->path = other.path;
+
+  ptr->use_count++;
+}
+
+template<typename T>
+shared_mem_ptr<T>::shared_mem_ptr(shared_mem_ptr<T> &&other) {
+  this->memfd = other.memfd;
+  this->ptr = other.ptr;
+  this->path = other.path;
+
+  other.ptr = nullptr;
+}
+
+template<typename T>
+shared_mem_ptr<T> &shared_mem_ptr<T>::operator=(const shared_mem_ptr<T> &other) {
+  if (&other != this) {
     this->memfd = other.memfd;
     this->ptr = other.ptr;
     this->path = other.path;
 
     ptr->use_count++;
+  }
+  return *this;
 }
 
 template<typename T>
-shared_mem_ptr<T>::shared_mem_ptr(shared_mem_ptr<T>&& other) {
+shared_mem_ptr<T> &shared_mem_ptr<T>::operator=(shared_mem_ptr<T> &&other) {
+  if (&other != this) {
     this->memfd = other.memfd;
     this->ptr = other.ptr;
     this->path = other.path;
 
     other.ptr = nullptr;
-}
-
-template<typename T>
-shared_mem_ptr<T>& shared_mem_ptr<T>::operator=(const shared_mem_ptr<T>& other) {
-    if(&other != this) {
-        this->memfd = other.memfd;
-        this->ptr = other.ptr;
-        this->path = other.path;
-
-        ptr->use_count++;
-    }
-    return *this;
-}
-
-template<typename T>
-shared_mem_ptr<T>& shared_mem_ptr<T>::operator=(shared_mem_ptr<T>&& other) {
-    if(&other != this) {
-        this->memfd = other.memfd;
-        this->ptr = other.ptr;
-        this->path = other.path;
-
-        other.ptr = nullptr;
-    }
-    return *this;
+  }
+  return *this;
 }
 
 template<typename T, std::size_t N>
 typename std::array<T, N>::iterator fast_deque<T, N>::push_front() noexcept {
-    if (full())
-        return array.end();
+  if (full())
+    return array.end();
 
-    if (empty()) {
-        front_index = 0;
-        back_index = 0;
-    } else {
-        front_index = prev(front_index);
-    }
+  if (empty()) {
+    front_index = 0;
+    back_index = 0;
+  } else {
+    front_index = prev(front_index);
+  }
 
-    return frontit();
+  return frontit();
 }
 
 template<typename T, std::size_t N>
 typename std::array<T, N>::iterator fast_deque<T, N>::push_back() noexcept {
-    if (full())
-        return array.end();
+  if (full())
+    return array.end();
 
-    if (empty()) {
-        front_index = 0;
-        back_index = 0;
-    } else {
-        back_index = next(back_index);
-    }
+  if (empty()) {
+    front_index = 0;
+    back_index = 0;
+  } else {
+    back_index = next(back_index);
+  }
 
-    return backit();
+  return backit();
 }
 
 template<typename T, std::size_t N>
 typename std::array<T, N>::iterator fast_deque<T, N>::pop_front() noexcept {
-    if (empty())
-        return array.end();
+  if (empty())
+    return array.end();
 
-    const auto current_index = front_index;
-    if (front_index == back_index)
-        reset();
-    else
-        front_index = next(front_index);
+  const auto current_index = front_index;
+  if (front_index == back_index)
+    reset();
+  else
+    front_index = next(front_index);
 
-    return std::next(array.begin(), current_index);
+  return std::next(array.begin(), current_index);
 }
 
 template<typename T, std::size_t N>
 typename std::array<T, N>::iterator fast_deque<T, N>::pop_back() noexcept {
-    if (empty())
-        return array.end();
+  if (empty())
+    return array.end();
 
-    const auto current_index = back_index;
-    if (front_index == back_index)
-        reset();
-    else
-        back_index = prev(back_index);
+  const auto current_index = back_index;
+  if (front_index == back_index)
+    reset();
+  else
+    back_index = prev(back_index);
 
-    return std::next(array.begin(), current_index);
+  return std::next(array.begin(), current_index);
 }
 
 template<typename T, std::size_t N>
 bool fast_deque<T, N>::empty() const noexcept {
-    return front_index == invalid_index;
+  return front_index == invalid_index;
 }
 
 template<typename T, std::size_t N>
 bool fast_deque<T, N>::full() const noexcept {
-    return (front_index == 0 && back_index == N - 1) || (front_index == back_index + 1);
+  return (front_index == 0 && back_index == N - 1) || (front_index == back_index + 1);
 }
 
 template<typename T, std::size_t N>
 std::size_t fast_deque<T, N>::next(std::size_t n) noexcept {
-    return (n + 1) % N;
+  return (n + 1) % N;
 }
 
 template<typename T, std::size_t N>
 std::size_t fast_deque<T, N>::prev(std::size_t n) noexcept {
-    return n == 0 ? N - 1 : n - 1;
+  return n == 0 ? N - 1 : n - 1;
 }
 
 template<typename T, std::size_t N>
 void fast_deque<T, N>::reset() noexcept {
-    front_index = invalid_index;
-    back_index = invalid_index;
+  front_index = invalid_index;
+  back_index = invalid_index;
 }
 
 template<typename T>
 template<typename ... Args>
-spin_locked_resource<T>::spin_locked_resource(Args&&... args) 
-    : lock_(false), obj(std::forward<Args>(args)... ) {}
+spin_locked_resource<T>::spin_locked_resource(Args &&... args)
+    : lock_(false), obj(std::forward<Args>(args)...) {}
 
 template<typename T>
 typename spin_locked_resource<T>::locked_resource spin_locked_resource<T>::lock() noexcept {
-    while (lock_.exchange(true, std::memory_order_acquire))
-        ;
+  while (lock_.exchange(true, std::memory_order_acquire));
 
-    return locked_resource(*this, obj);
+  return locked_resource(*this, obj);
 }
 
 template<typename T>
 void spin_locked_resource<T>::unlock() noexcept {
-    lock_.store(false, std::memory_order_release);
+  lock_.store(false, std::memory_order_release);
 }
 
 template<typename T>
-spin_locked_resource<T>::locked_resource::locked_resource(spin_locked_resource<T>& lock, T& obj)
+spin_locked_resource<T>::locked_resource::locked_resource(spin_locked_resource<T> &lock, T &obj)
     : lock(lock), obj(obj) {}
 
 template<typename T>
 spin_locked_resource<T>::locked_resource::~locked_resource() {
-    lock.unlock();
+  lock.unlock();
 }
 
 #endif

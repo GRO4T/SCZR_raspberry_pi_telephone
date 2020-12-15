@@ -59,15 +59,15 @@ bool isol_cpus = false;
 void runOnCpu(int cpu_num);
 void setup();
 
-std::optional<uint32_t> try_recv_packet(auto & ptr) {
-    {
-      auto resource = ptr->lock();
-      if (resource->empty())
-        return {};
+std::optional<uint32_t> try_recv_packet(auto &ptr) {
+  {
+    auto resource = ptr->lock();
+    if (resource->empty())
+      return {};
 
-      return resource->pop_back()->reserved;
-    }
-    return {};
+    return resource->pop_back()->reserved;
+  }
+  return {};
 }
 
 class DFlipFlop {
@@ -76,23 +76,23 @@ class DFlipFlop {
     uint32_t pin;
 public:
     DFlipFlop(uint32_t pin) : pin(pin) {
-        previous = current = digitalRead(pin);
+      previous = current = digitalRead(pin);
     }
 
     bool was_edge() {
-        previous = current;
-        current = digitalRead(pin);
+      previous = current;
+      current = digitalRead(pin);
 
-        return current != previous;
+      return current != previous;
     }
 };
 
 bool Halt = false;
 
 void signal_handler(int sig) {
-    if (sig == SIGINT) {
-        Halt = true;
-    }
+  if (sig == SIGINT) {
+    Halt = true;
+  }
 }
 
 void make_summary(std::size_t last);
@@ -103,21 +103,20 @@ int forkAndExecute(std::function<void()> func) {
   pid_t child_pid = fork();
   if (child_pid < 0) {
     throw std::runtime_error("Fork failed.");
-  }
-  else if (child_pid == 0) {
+  } else if (child_pid == 0) {
     func();
   }
   return child_pid;
 }
 
-int main(int argc, char* argv[]) {
+int main(int argc, char *argv[]) {
   if (argc == 2) {
-  	std::string run_arg = argv[1];
-	if (run_arg == "--isol-cpus") isol_cpus = true;
-	else {
-	  std::cout << "Uzycie: ./benchmark --isol-cpus" << std::endl;
-	  return 0;
-	}
+    std::string run_arg = argv[1];
+    if (run_arg == "--isol-cpus") isol_cpus = true;
+    else {
+      std::cout << "Uzycie: ./benchmark --isol-cpus" << std::endl;
+      return 0;
+    }
   }
 
   setup();
@@ -131,21 +130,21 @@ int main(int argc, char* argv[]) {
 }
 
 void runOnCpu(int cpu_num) {
-	cpu_set_t set;
-	CPU_ZERO(&set);
-	CPU_SET(cpu_num, &set);
-	if (sched_setaffinity(getpid(), sizeof(set), &set) == -1) {
-		throw std::runtime_error("Error sched_setaffinity()!");
-	}
+  cpu_set_t set;
+  CPU_ZERO(&set);
+  CPU_SET(cpu_num, &set);
+  if (sched_setaffinity(getpid(), sizeof(set), &set) == -1) {
+    throw std::runtime_error("Error sched_setaffinity()!");
+  }
 }
 
 void setup() {
-    wiringPiSetup();
-    
-    pinMode(ENABLE_PIN, OUTPUT);
-    pinMode(NEW_PACKET_PIN, INPUT);
+  wiringPiSetup();
 
-    digitalWrite(ENABLE_PIN, LOW);
+  pinMode(ENABLE_PIN, OUTPUT);
+  pinMode(NEW_PACKET_PIN, INPUT);
+
+  digitalWrite(ENABLE_PIN, LOW);
 }
 
 void make_summary(std::size_t last) {
@@ -153,59 +152,58 @@ void make_summary(std::size_t last) {
   uint32_t lost_packets = 0;
   double delay_sum = 0.0;
   double max_delay = 0.0;
-  
 
-  for (std::size_t i=0; i < last; ++i) {
+  for (std::size_t i = 0; i < last; ++i) {
     const auto send = send_at[i];
     const auto received = received_at[i];
     if (received == null_time_point) {
-      printf("Packet %lu was lost\n", (long unsigned int)i);
+      printf("Packet %lu was lost\n", (long unsigned int) i);
       lost_packets++;
       continue;
     }
     const auto delay = std::chrono::duration_cast<std::chrono::microseconds>(received - send).count();
     delay_sum += delay;
-	if (delay > max_delay) max_delay = delay;
-    printf("Packet %lu was delayed by %lld microseconds\n", (long unsigned int)i, delay);
+    if (delay > max_delay) max_delay = delay;
+    printf("Packet %lu was delayed by %lld microseconds\n", (long unsigned int) i, delay);
   }
   printf("%d packets was lost and mean delay was %lf microseconds\n", lost_packets, delay_sum / (last - lost_packets));
   printf("Maximum delay: %lf\n", max_delay);
 }
 
-void setReceivedAt(Audio<BUFFER_SIZE>::PacketDeque& ptr) {
-	while (i < NumOfPacketsToCount && !Halt) {
-			auto p = try_recv_packet(ptr);
-			if (p) {
-			  received_at[*p] = std::chrono::high_resolution_clock::now();
-			  printf("received packet with id = %d\n", *p + 1);
-			}
-	}
+void setReceivedAt(Audio<BUFFER_SIZE>::PacketDeque &ptr) {
+  while (i < NumOfPacketsToCount && !Halt) {
+    auto p = try_recv_packet(ptr);
+    if (p) {
+      received_at[*p] = std::chrono::high_resolution_clock::now();
+      printf("received packet with id = %d\n", *p + 1);
+    }
+  }
 }
 
 void setSendAt() {
-  	DFlipFlop d(NEW_PACKET_PIN);
-	cpu_set_t set;
-	CPU_ZERO(&set);
-	CPU_SET(2, &set);
-	if (pthread_setaffinity_np(pthread_self(), sizeof(set), &set) < 0) {
-		throw std::runtime_error("Klops");
-	}
-	while (i < NumOfPacketsToCount && !Halt) {
-		if (d.was_edge()) {
-		  send_at[i++] = std::chrono::high_resolution_clock::now();
-		  printf("Packet %lu was send\n", (long unsigned int)i);
-		}
-	}
+  DFlipFlop d(NEW_PACKET_PIN);
+  cpu_set_t set;
+  CPU_ZERO(&set);
+  CPU_SET(2, &set);
+  if (pthread_setaffinity_np(pthread_self(), sizeof(set), &set) < 0) {
+    throw std::runtime_error("Klops");
+  }
+  while (i < NumOfPacketsToCount && !Halt) {
+    if (d.was_edge()) {
+      send_at[i++] = std::chrono::high_resolution_clock::now();
+      printf("Packet %lu was send\n", (long unsigned int) i);
+    }
+  }
 }
 
 void playAudio() {
-  if (isol_cpus == true) runOnCpu(2);		
+  if (isol_cpus == true) runOnCpu(2);
 
   signal(SIGINT, &signal_handler);
   Audio<BUFFER_SIZE>::PacketDeque ptr(SHM_AUDIO_TEST_NAME);
-  
+
   std::this_thread::sleep_for(1s);
-  
+
   while (1) {
     {
       auto resource = ptr->lock();
@@ -220,24 +218,24 @@ void playAudio() {
 
   digitalWrite(ENABLE_PIN, HIGH);
 
-	std::thread t1([&]() { setReceivedAt(ptr); });
-	setSendAt();
-	t1.detach();
+  std::thread t1([&]() { setReceivedAt(ptr); });
+  setSendAt();
+  t1.detach();
   make_summary(i);
 }
 
 void fetchDataFromMic() {
-  if (isol_cpus == true) runOnCpu(3);		
+  if (isol_cpus == true) runOnCpu(3);
 
   Audio<BUFFER_SIZE>::PacketDeque ptr(SHM_AUDIO_TEST_NAME);
   Audio<BUFFER_SIZE>::AudioPacket audio_packet;
   transmission::MicPacket packet_from_mic;
   transmission::DataFromMicRetriever data_from_mic_retriever;
 
-  while(1) {
+  while (1) {
     {
       auto resource = ptr->lock();
-      if(resource->full())
+      if (resource->full())
         continue;
     }
 

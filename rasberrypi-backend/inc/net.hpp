@@ -23,11 +23,11 @@ public:
 class IPv6 {
     in6_addr addr;
 public:
-    IPv6(const IPv6& ) = default;
-    explicit IPv6(const char* );
-    explicit IPv6(const std::string& );
+    IPv6(const IPv6 &) = default;
+    explicit IPv6(const char *);
+    explicit IPv6(const std::string &);
 
-    const in6_addr& address() const noexcept;
+    const in6_addr &address() const noexcept;
 };
 
 std::ostream &operator<<(std::ostream &os, const IPv4 &ip4);
@@ -53,12 +53,12 @@ private:
     int sockfd;
     struct sockaddr_in6 addr;
 public:
-    TCPConnection(int sockfd, const struct sockaddr_in6& addr);
-    TCPConnection(const TCPConnection& ) = delete;
+    TCPConnection(int sockfd, const struct sockaddr_in6 &addr);
+    TCPConnection(const TCPConnection &) = delete;
     ~TCPConnection();
 
-    std::size_t read(char* buffer, std::size_t buffer_size) const;
-    std::size_t write(const char* buffer, std::size_t buffer_size) const;
+    std::size_t read(char *buffer, std::size_t buffer_size) const;
+    std::size_t write(const char *buffer, std::size_t buffer_size) const;
     void shutdown(int how = SHUT_RDWR);
     void setsockopt(int level, int optname, const void *optval, socklen_t optlen);
 
@@ -68,7 +68,7 @@ public:
     int fd() const noexcept;
 };
 
-class Connection :public TCPConnection {
+class Connection : public TCPConnection {
 private:
     enum PacketState {
       Start,
@@ -78,35 +78,35 @@ private:
     uint16_t payload_size;
     std::array<char, 0x4000> buffer;
 
-    bool recv(std::string& , std::size_t );
-    bool send(const std::string& , std::size_t& );
+    bool recv(std::string &, std::size_t);
+    bool send(const std::string &, std::size_t &);
 public:
-    Connection(int sockfd, const struct sockaddr_in6& addr);
-    Connection(const Connection& ) = delete;
+    Connection(int sockfd, const struct sockaddr_in6 &addr);
+    Connection(const Connection &) = delete;
     virtual ~Connection() {}
 
-    bool recvPayload(std::string& );
-    bool sendPayload(std::string& );
+    bool recvPayload(std::string &);
+    bool sendPayload(std::string &);
 
-    void sendFile(std::fstream& file, std::size_t file_size);
-    void recvFile(std::fstream& file, std::size_t file_size);
+    void sendFile(std::fstream &file, std::size_t file_size);
+    void recvFile(std::fstream &file, std::size_t file_size);
 
-    bool sendfileChunk(std::fstream& file, std::size_t file_size);
-    bool recvfileChunk(std::fstream& file, std::size_t file_size);
+    bool sendfileChunk(std::fstream &file, std::size_t file_size);
+    bool recvfileChunk(std::fstream &file, std::size_t file_size);
 };
 
-std::unique_ptr<Connection> connect(const IPv4& ip, unsigned short port);
-std::unique_ptr<Connection> connect(const IPv6& ip, unsigned short port);
-std::unique_ptr<Connection> connect(const std::string& host, const std::string& port);
-std::unique_ptr<Connection> connect(const std::string& url);
+std::unique_ptr<Connection> connect(const IPv4 &ip, unsigned short port);
+std::unique_ptr<Connection> connect(const IPv6 &ip, unsigned short port);
+std::unique_ptr<Connection> connect(const std::string &host, const std::string &port);
+std::unique_ptr<Connection> connect(const std::string &url);
 
 class TCPServer {
     int sockfd;
 public:
     TCPServer();
     ~TCPServer();
-    void bind(const IPv4& ip, unsigned short port);
-    void bind(const IPv6& ip, unsigned short port);
+    void bind(const IPv4 &ip, unsigned short port);
+    void bind(const IPv6 &ip, unsigned short port);
     void listen(std::size_t n = SOMAXCONN);
     void reuseaddr(bool reuse = true);
 
