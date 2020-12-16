@@ -60,7 +60,7 @@ bool isol_cpus = false;
 void runOnCpu(int cpu_num);
 void setup();
 
-std::optional<uint32_t> try_recv_packet(auto &ptr) {
+std::optional<uint32_t> try_recv_packet(Audio<BUFFER_SIZE>::PacketDeque &ptr) {
   {
     auto resource = ptr->lock();
     if (resource->empty())
@@ -188,7 +188,7 @@ void setReceivedAt(Audio<BUFFER_SIZE>::PacketDeque &ptr) {
     auto p = try_recv_packet(ptr);
     if (p) {
       received_at[*p] = std::chrono::high_resolution_clock::now();
-      printf("received packet with id = %d\n", *p + 1);
+      /* printf("received packet with id = %d\n", *p + 1); */
     }
   }
 }
@@ -204,7 +204,7 @@ void setSendAt() {
   while (i < NumOfPacketsToCount && !Halt) {
     if (d.was_edge()) {
       send_at[i++] = std::chrono::high_resolution_clock::now();
-      printf("Packet %lu was send\n", (long unsigned int) i);
+      /* printf("Packet %lu was send\n", (long unsigned int) i); */
     }
   }
 }
